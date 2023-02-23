@@ -1,0 +1,128 @@
+% Standard Article Definition
+\documentclass[]{article}
+
+% Page Formatting
+\usepackage[margin=1in]{geometry}
+\setlength\parindent{0pt}
+
+% Graphics
+\usepackage{graphicx}
+
+% Math Packages
+\usepackage{physics}
+\usepackage{amsmath, amsfonts, amssymb, amsthm}
+\usepackage{mathtools}
+
+% Extra Packages
+\usepackage{pdfpages}
+\usepackage{hyperref}
+\usepackage{todonotes}
+% \usepackage{listings}
+
+% % Section Heading Settings
+% % \usepackage{enumitem}
+% % \renewcommand{\theenumi}{\alph{enumi}}
+% \renewcommand*{\thesection}{Problem \arabic{section}}
+% \renewcommand*{\thesubsection}{\alph{subsection})}
+% \renewcommand*{\thesubsubsection}{}%\quad \quad \roman{subsubsection})}
+
+% \newcommand{\Problem}{\subsubsection*{\textbf{PROBLEM:}}}
+% \newcommand{\Solution}{\subsubsection*{\textbf{SOLUTION:}}}
+% \newcommand{\Preliminaries}{\subsubsection*{\textbf{PRELIMINARIES:}}}
+
+%Custom Commands
+\newcommand{\N}{\mathbb{N}}
+% \newcommand{\Z}{\mathbb{Z}}
+% \newcommand{\Q}{\mathbb{Q}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\C}{\mathbb{C}}
+
+% \newcommand{\SigAlg}{\mathcal{S}}
+
+% \newcommand{\Rel}{\mathcal{R}}
+
+% \newcommand{\toI}{\xrightarrow{\textsf{\tiny I}}}
+% \newcommand{\toS}{\xrightarrow{\textsf{\tiny S}}}
+% \newcommand{\toB}{\xrightarrow{\textsf{\tiny B}}}
+
+% \newcommand{\divisible}{ \ \vdots \ }
+\newcommand{\st}{\ : \ }
+
+% % Theorem Definition
+% \newtheorem{definition}{Definition}
+% \newtheorem{assumption}{Assumption}
+% \newtheorem{theorem}{Theorem}
+% \newtheorem{lemma}{Lemma}
+% \newtheorem{proposition}{Proposition}
+% \newtheorem{remark}{Remark}
+% % \newtheorem{example}{Example}
+% % \newtheorem{counterExample}{Counter Example}
+
+
+%opening
+\title{
+    MECH 6326 - Optimal Control and Dynamic Programming \\ 
+    Project description
+}
+\author{Alyssa Vellucci and Jonas Wagner}
+\date{2023, February 24\textsuperscript{th}}
+
+\begin{document}
+
+\maketitle
+
+\todo{all the title stuff needs to be fixed... and select formatting to take up less space...}
+
+The multi-step decision making under uncertainty problem we will be analyzing is that of combat during a tabletop roleplaying game (TTRPG), specifically a combat encounter under the ruleset from Dungeons \& Dragons fifth edition (D\&D 5e).
+
+\section*{D\&D Explanation}
+D\&D consists of group players who go on an adventure together.
+The group forms a party of adventurers, composed of multiple playable characters (PC), that exist within an environment overseen by a Dungeon Master (DM).
+In a typical D\&D combat, the players will fight a creature being controlled by the Dungeon Master (DM). 
+The players have certain skills their characters can use, and their effectiveness is determined by a dice roll. 
+The creatures overseen by the DM also has certain skills or tactics they can use against the players, and that efficacy is also determined by a dice roll; however the outcome of these roles is hidden from the players. 
+Simplistically this process can be modeling as a closed loop system where the current state of the battle can be used to inform the player’s decision-making and ideally used for a successful combat encounter.
+
+\section*{System Model}
+The combat encounter will be simplified to fit the scope of the project, but the full combat system is very well documented in the D\&D 5e ruleset; thus, the system is simplistically defined as PCs and Enemies operating under the D\&D 5e ruleset.
+
+\subsection*{System States:}
+The states of the system include the following for both the PC and enemy creature: 
+(i) hit points (HP), 
+(ii) position within the environment, 
+(iii) condition modifies (ex. Blinded, prone, poisoned, etc.),
+and (iv) potentially the spell slots remaining (how many times a PC or creature can perform an ability).
+
+\subsection*{System Inputs:}
+The control inputs would include all the actions the PCs perform.
+This can include a PC conducting an attack, moving a set distance, casting a utility spell, or interacting with an object in their environment. 
+This will be simplified to selecting between a finite number possible actions (melee/ranged attack, cast attack/utility spell, etc.), alongside deciding if and where to move, and potentially another selection between the more restrictive bonus actions.
+% Each action should further the goal of the performance objective.
+
+\subsection*{Stochastic Disturbances:}
+The stochastic uncertainty within the system comes from the dice rolls made when performing an action.
+Generally a threshold must be met to yield a success along and additional dice rolls to determine effectiveness (i.e. damage) of an action.
+Each roll is also be modified by the specific attributes of the PCs and creatures.
+
+Since the players don't directly know the stats (armor class, HP totals, what abilities they can use, resistances and weaknesses, etc.) of the enemies they face, additional dice rolls may be taken to determine how effectively the enemies stats are known.
+The initial simplification will eliminate this uncertainty.
+
+\section*{Primary Control Objective:}
+The primary control objectives of both the PCs and creatures will be to maximize their own HP while minimizing the opponents HP.
+The objective could also be modified to work with other members of the party, environmental considerations (dangerous/advantageous terrain/formation etc.), and/or increase/decrease the overall length of the encounter.
+
+\section*{Potential Results:}
+\todo{what results are we hoping for? just the trajectory of HPs? are we even doing position?}
+
+
+
+% Appendix ----------------------------------------------
+% \newpage
+% \appendix
+% \bibliographystyle{plain}
+% \bibliography{refs.bib}
+
+
+
+
+\end{document}
