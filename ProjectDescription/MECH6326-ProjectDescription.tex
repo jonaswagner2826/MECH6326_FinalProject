@@ -1,9 +1,11 @@
 % Standard Article Definition
-\documentclass[9pt]{article}
+\documentclass[9pt, onecolumn]{report}
 
 % Page Formatting
-\usepackage[margin=1in]{geometry}
+\usepackage[margin=0.5in]{geometry}
+
 \setlength\parindent{0pt}
+% \pagestyle{fancy}
 
 % Graphics
 \usepackage{graphicx}
@@ -60,17 +62,15 @@
 
 \maketitle
 
-\todo{all the title stuff needs to be fixed... and select formatting to take up less space...}
-
+\section*{D\&D Explanation}
 The multi-step decision making under uncertainty problem we will be analyzing is that of combat during a tabletop roleplaying game (TTRPG), specifically a combat encounter under the ruleset from Dungeons \& Dragons fifth edition (D\&D 5e).
 
-\section*{D\&D Explanation}
 D\&D consists of group players who go on an adventure together.
 The group forms a party of adventurers, composed of multiple playable characters (PC), that exist within an environment overseen by a Dungeon Master (DM).
 In a typical D\&D combat, the players will fight a creature being controlled by the Dungeon Master (DM). 
 The players have certain skills their characters can use, and their effectiveness is determined by a dice roll. 
 The creatures overseen by the DM also has certain skills or tactics they can use against the players, and that efficacy is also determined by a dice roll; however the outcome of these roles is hidden from the players. 
-Simplistically this process can be modeling as a closed loop system where the current state of the battle can be used to inform the player’s decision-making and ideally used for a successful combat encounter.
+% Simplistically this process can be modeling as a closed loop system where the current state of the battle can be used to inform the player's decision-making and ideally used for a successful combat encounter.
 
 \section*{System Model}
 The combat encounter will be simplified to fit the scope of the project, but the full combat system is very well documented in the D\&D 5e ruleset; thus, the system is simplistically defined as PCs and Enemies operating under the D\&D 5e ruleset.
