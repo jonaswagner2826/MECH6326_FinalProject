@@ -65,28 +65,27 @@
 \section*{D\&D Explanation}
 The multi-step decision making under uncertainty problem we will be analyzing is that of combat during a tabletop roleplaying game (TTRPG), specifically a combat encounter under the ruleset from Dungeons \& Dragons fifth edition (D\&D 5e).
 
-D\&D consists of group players who go on an adventure together.
-The group forms a party of adventurers, composed of multiple playable characters (PC), that exist within an environment overseen by a Dungeon Master (DM).
-In a typical D\&D combat, the players will fight a creature being controlled by the Dungeon Master (DM). 
+D\&D consists of a group or party of players who go on an adventure together.
+The party is composed of multiple playable characters (PCs) that exist within an environment overseen by a Dungeon Master (DM).
+In a typical D\&D combat, the players will fight a creature (or multiple creatures) being controlled by the DM. 
 The players have certain skills their characters can use, and their effectiveness is determined by a dice roll. 
-The creatures overseen by the DM also has certain skills or tactics they can use against the players, and that efficacy is also determined by a dice roll; however the outcome of these roles is hidden from the players. 
+The creatures overseen by the DM also have certain skills or tactics they can use against the players, and that efficacy is also determined by a dice roll; however the outcomes of these rolls are hidden from the players. 
 % Simplistically this process can be modeling as a closed loop system where the current state of the battle can be used to inform the player's decision-making and ideally used for a successful combat encounter.
 
 \section*{System Model}
-The combat encounter will be simplified to fit the scope of the project, but the full combat system is very well documented in the D\&D 5e ruleset; thus, the system is simplistically defined as PCs and Enemies operating under the D\&D 5e ruleset.
+The combat encounter will be simplified to fit the scope of the project, but the full combat system is very well documented in the D\&D 5e ruleset; thus, the system is simplistically defined as the environment the combat takes place in. The PCs act as controllers in this environment. All rules governing the actions of the players, enemies, and environment are dictated by the D\&D 5e ruleset. 
 
 \subsection*{System States:}
 The states of the system include the following for both the PC and enemy creature: 
 (i) hit points (HP), 
 (ii) position within the environment, 
-(iii) condition modifies (ex. Blinded, prone, poisoned, etc.),
+(iii) condition modifiers (ex. Blinded, prone, poisoned, etc.),
 and (iv) potentially the spell slots remaining (how many times a PC or creature can perform an ability).
 
 \subsection*{System Inputs:}
 The control inputs would include all the actions the PCs perform.
 This can include a PC conducting an attack, moving a set distance, casting a utility spell, or interacting with an object in their environment. 
-This will be simplified to selecting between a finite number possible actions (melee/ranged attack, cast attack/utility spell, etc.), alongside deciding if and where to move, and potentially another selection between the more restrictive bonus actions.
-% Each action should further the goal of the performance objective.
+This will be simplified to selecting between a finite number possible actions (melee/ranged attack, cast attack/utility spell, etc.), alongside deciding if and where to move, and potentially another selection between the more restrictive bonus actions. Each action should further the goal of the performance objective.
 
 \subsection*{Stochastic Disturbances:}
 The stochastic uncertainty within the system comes from the dice rolls made when performing an action.
@@ -97,13 +96,13 @@ Since the players don't directly know the stats (armor class, HP totals, what ab
 The initial simplification will eliminate this uncertainty.
 
 \section*{Primary Control Objective:}
-The primary control objectives of both the PCs and creatures will be to maximize their own HP while minimizing the opponents HP.
+The primary control objectives of both the PCs and creatures will be to maximize their own HP while minimizing the opponent's HP.
 The objective could also be modified to work with other members of the party, environmental considerations (dangerous/advantageous terrain/formation etc.), and/or increase/decrease the overall length of the encounter.
 
 \section*{Potential Results:}
-\todo{what results are we hoping for? just the trajectory of HPs? are we even doing position?}
+The potential results of this analysis would be the ideal order of actions a player would take to have the optimal combat encounter. This could be displayed as a trajectory of the HP totals of the PCs and the creatures at each time step (combat round). With these graphs, we could directly compare control laws with different parameters (conditions affecting PCs, movement penalties, etc.) and the cost function could also be modified and compared for different scenarios: shortest combat encounter, a chase/fleeing combat encounter, or a protect-the-NPC encounter.
 
-
+Another result of the problem could involve a 1D or 2D visualization of the PC and creature movement as it evolves over the course of the combat. The movement mechanic is important in D\&D combat, and rarely do two combatants stand in front of one another the entire encounter.
 
 % Appendix ----------------------------------------------
 % \newpage
