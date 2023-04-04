@@ -127,7 +127,7 @@
     \begin{itemize}
         \item 1 PC and 1 Monster
         \item Identical Specs/modifiers
-        \item Same weapon (+2) ??????????????????? (different between melee and ranged?)
+        \item Same weapon (+2) {\color{red} (different between melee and ranged?)}
     \end{itemize}
     \item Monster
     \begin{itemize}
@@ -151,7 +151,7 @@ For HP, let \[
 \subsubsection{Inputs}
 The inputs to the system consist of movement and actions impacting the position and hp states respectively.
 For movement, a deterministic input of \[
-    u_{pc,m}, u_{mn,m} \in \mathcal{U}_{m} = \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\}
+    u_{pc,m}, u_{mn,m} \in \mathcal{U}_{m} = \{(-1,0), (+1,0), (0,-1),(0,+1), (-1,-1), (-1,+1), (+1,-1),(+1,+1)\}
 \]
 
 For actions, all the actions (except nothing) each are stochastic and can be represented as Markov chains or as a combination of input and noise term, $u_{pc,a}, u_{mn,a} \in \mathcal{U}_{a} = \{\text{Melee, Ranged, Heal, Nothing}\}$.
@@ -165,7 +165,7 @@ For Melee and Ranged attacks, the character acts upon another character's HP whe
 
 The PC is allowed to use a health potion which has a stochastic effect upon the player's health:
 \begin{enumerate}
-    \item {\color{red} Ensure potion is available - otherwise can't heal}
+    \item Ensure potion is available - otherwise can't heal
     \item "Roll" for effectiveness - player's HP increased by health modifier (1) + d4
 \end{enumerate}
 
@@ -173,7 +173,7 @@ The PC is allowed to use a health potion which has a stochastic effect upon the 
 For the simplistic case, let states at time-step $k$, be \[
     x_k = \mqty[x_{pc,p}\\x_{mn,p}\\x_{pc,hp}\\x_{mn,hp}] \in \mathcal{X} = \mathcal{X}_p^2 \cross \mathcal{X}_{hp}^2 \subseteq \Z^{4} \cross \Z_{+}^{2}
 \] Let the inputs to the system be only the players inputs \[
-    u_k = \mqty[u_{pc,p}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
+    u_k = \mqty[u_{pc,m}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
 \] The monster's inputs to the system will be incorporated as a deterministic and stochastic input that are closed-loop within the system and treated as part of the nonlinear aspects of the update function/Markov chains.
 
 The evolution of the system can be described as Markov chains or by a nonlinear update function:\[
