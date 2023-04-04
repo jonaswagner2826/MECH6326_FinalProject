@@ -2,7 +2,7 @@
 \documentclass[9pt, onecolumn]{report}
 
 % Page Formatting
-\usepackage[margin=0.5in]{geometry}
+% \usepackage[margin=0.5in]{geometry}
 
 % \setlength\parindent{0pt}
 % \pagestyle{fancy}
@@ -38,7 +38,7 @@
 % \newcommand{\toB}{\xrightarrow{\textsf{\tiny B}}}
 
 % \newcommand{\divisible}{ \ \vdots \ }
-% \newcommand{\st}{\ : \ }
+\newcommand{\st}{\ : \ }
 
 % % Theorem Definition
 % \newtheorem{definition}{Definition}
@@ -169,16 +169,67 @@ The PC is allowed to use a health potion which has a stochastic effect upon the 
     \item "Roll" for effectiveness - player's HP increased by health modifier (1) + d4
 \end{enumerate}
 
-\subsubsection{Problem Statement}
+\subsubsection{Noise}
+When written in some forms the stochastic aspects of the system can be described as a noise signal.
+This can be modeled as either a single HP update amount with dependent distribution on action or as a non-addative noise signal where the update is dependent as described. 
+
+For a complete picture, let the action noise be described as \[
+    w_{pc,a}, w_{mn,a} \in \mathcal{W}_{a} \subseteq \{\text{"success"} = 1, \text{"failure"} = 0\} \cross \Z_{+}
+\] where the distributions of each are dependent on the input action $u_{pc,a}, u_{mn,a}$ and associated attack modifiers.
+
+Alternativly for the simplistic case this can be done separately, where $\{\text{"success", "failure"}\}$ is dependent on the PC and monster's stats as well as their respective dice rolls, thus \[
+    w_{pc,sf}, w_{mn,sf} \in \mathcal{W}_{sf} \subseteq \{0, 1\}
+    .
+\]
+The damage or heal amount is then also stochastic dependent on player stats and a dice roll (d4/d6/d8).
+The dice roll noise is defined as \[
+    w_{pc,d4}, w_{mn,d4} \in \mathcal{W}_{d4} = \{1,2,3,4\}
+\] \[
+    w_{pc,d6}, w_{mn,d6} \in \mathcal{W}_{d6} = \{1,2,3,4,5,6\}
+\] \[
+    w_{pc,d8}, w_{mn,d8} \in \mathcal{W}_{d4} = \{1,2,3,4,5,6,7,8\}
+\] where each option is equally likely.
+% The update amount for states is then $(1 \text{ or } 2) + (\text{"success" or "failure"})(\text{d4 or d6 or d8})$
+
+\subsection{Problem Statement}
 For the simplistic case, let states at time-step $k$, be \[
     x_k = \mqty[x_{pc,p}\\x_{mn,p}\\x_{pc,hp}\\x_{mn,hp}] \in \mathcal{X} = \mathcal{X}_p^2 \cross \mathcal{X}_{hp}^2 \subseteq \Z^{4} \cross \Z_{+}^{2}
 \] Let the inputs to the system be only the players inputs \[
     u_k = \mqty[u_{pc,m}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
 \] The monster's inputs to the system will be incorporated as a deterministic and stochastic input that are closed-loop within the system and treated as part of the nonlinear aspects of the update function/Markov chains.
+Let the stochastic signal be defined as \[
+    w_k = \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
+\]
 
-The evolution of the system can be described as Markov chains or by a nonlinear update function:\[
-    x_{k+1} = f(x_k, u_k)
-\] which is described as ... (more complicated..)
+\todo{Should this be as simple as it is or do we want to make it more general and then specify the static things?}
+The evolution of the very simple system can be described as Markov chains or by a nonlinear update function:\[
+    x_{k+1} = f(x_k, u_k, w_k) = \mqty[
+        x_{pc,p} + f_{pc,m}(u_k)\\
+        x_{mn,p} + f_{mn,m}(x_k)\\
+        \mqty[x_{pc,hp}\\ x_{mn,hp}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
+    ]
+\] where the associated functions update states as follows: 
+\begin{itemize}
+    \item The players deterministic movement: $f_{pc,m}(u_k) = u_{pc,m}$
+    \item The monsters static movement: $f_{mn,m}(x_k) = (1,1)$ \todo{do we want a specific trajectory or just move each time-step? or just static?}
+    \item The players action (who can only attempt Melee or Ranged if within range):\[
+        f_{pc,a} = \begin{cases}
+            [0, -w_{pc,sf}(2 + w_{pc,d6})]^T & u_{pc,a} = \text{Melee} \land \norm{x_{pc,p} - x_{mn,p}} \leq \text{Melee Range}\\
+            [0, -w_{pc,sf}(2 + w_{pc,d8})]^T & u_{pc,a} = \text{Ranged} \land \norm{x_{pc,p} - x_{mn,p}} \leq \text{Ranged Range}\\
+            [1 + w_{pc,d4}, 0]^T & u_{pc,a} = \text{Heal} \land \text{Have Potion}\\
+            [0, 0]^T & u_{pc,a} = \text{Nothing} \lor \text{Otherwise}
+        \end{cases}
+    \]\todo{add state for potion?}
+    \item The monsters state dependent action: \[
+        f_{pc,a} = \begin{cases}
+            [-w_{mn,sf}(2 + w_{mn,d6}), 0]^T & \norm{x_{pc,p} - x_{mn,p}} \leq \text{Melee Range}\\
+            [-w_{mn,sf}(2 + w_{mn,d8}), 0]^T & \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}} \leq \text{Ranged Range}\\
+            [0, 0]^T & \text{Ranged Range} < \norm{x_{pc,p} - x_{mn,p}}
+            % [0, 1 + w_{mn,d4}] & u_{mn,a} = \text{Heal} \land \text{Have Potion} \todo{extra state?}\\
+            % [0, 0] & u_{mn,a} = \text{Nothing} \lor \text{Otherwise}
+        \end{cases}
+    \]
+\end{itemize}
 
 
 
