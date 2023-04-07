@@ -227,7 +227,7 @@ The evolution of the very simple system can be described as Markov chains or by 
     \item The players deterministic movement input: $f_{pc,m}(u_k) = u_{pc,m}$
     \item The monsters state-dependent movement:\[
         f_{mn,m}(x_k) = \operatorname{direction}(x_{pc,p} - x_{mn,p})
-    \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player. (In matlab we do: \verb!round(normalize(x_pc_p-x_mn_p))!)
+    \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player. (In matlab we do: \verb!round(k_mn_speed * normalize(x_pc_p-x_mn_p))!)
     % $f_{mn,m}(x_k) = (1,1)$ 
     \item The players action:\[
         f_{pc,a} = \begin{cases}

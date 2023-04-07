@@ -2,7 +2,7 @@ clear all; close all; clc;
 
 %% MECH 6326 Final Project: D&D Combat Simulation
 % Alyssa Vellucci: AMV170001
-% Jonas Wagner: netid here
+% Jonas Wagner: JRW200000
 
 %% Problem Definition
 melee = 1;
@@ -51,5 +51,12 @@ for i = 1:100
     d100(i) = 1/100;
 end
 dice = {d2 d4 d6 d8 d10 d20 d100}; 
+
+
+
+
+
+
+
 
 
