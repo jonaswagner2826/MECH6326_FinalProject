@@ -276,20 +276,67 @@ The states of the markov chain will be artificially independent $x_{pc,k}, x_{mn
 The transition matrices will be defined as $[p_{i,j}] = P(x_{k+1} = i, x_{k} = j)$.
 This can be thought of as each column being the probabilistic function results for $f(x_k,w_k), x_{k} = j, w_k = P[w_k]$. \todo{Improve notation of this terrible thing...}
 
+\subsubsection{PC Actions}
 First for the pc actions, which will be done independently from the monsters action which is then applied after according to the position.
 
-When $u_k = \text{Melee}$, the $f(x_k,w_k)$ will act upon $x_{mn,hp}$ with uncertainty $w_k \in \mathcal{W}_{d6}$, resulting in\[
-    f(x_{k+1} = i \st x_{k}=j) = j - w_{pc,melee,sf}*(2+w_{pc,d6}) = j - P(w_{pc,melee,sf}=\smqty[0\\1])\cross (2+w_{pc,d6}P(w_{pc,d6}=\smqty[1&\cdots&6])) = j - [0.45\\0.55] \cross (2+2_{pc,d6}[1/6\\ \vdots \\ 1/6]^T)
-\]\todo{notation terrible}
+When $u_k = \text{Melee}$, the $f(x_k,w_k)$ will act upon $x_{mn,hp}$ with uncertainty $w_k \in \mathcal{W}_{d6}$, resulting in$
+    f(x_{k+1} = i \st x_{k}=j) = j - w_{pc,melee,sf}*(2+w_{pc,d6}) = j - P(w_{pc,melee,sf}=\smqty[0\\1])\cross (2+w_{pc,d6}P(w_{pc,d6}=\smqty[1&\cdots&6])) = j - \smqty[0.45\\0.55] \cross (2+w_{pc,d6}\smqty[1/6& \cdots & 1/6]^T)
+$\todo{Notation terrible}
 resulting in $P(x_{k+1} = j) = 0.45$, $P(x_{k+1} = j-2-1) = \cdots = P(x_{k+1} = j-2-6) = \frac{0.55}{6} = \frac{11}{120} \approx 0.01967$.
 This is incorporated into the markov chain as the column $j$ has \[
     \mqty{i=1 \\ \vdots \\ i=j-2-7 \\ i=j-2-6\\ \vdots i = j-2-1 \\ i = j-2\\ i= j-1 \\ i=j \\ i=j+1\\ \vdots} \mqty [0\\ \vdots \\ 0\\ 0.019677\\ \vdots \\ 0.01967 \\ 0\\ 0 \\ 0.45 \\ 0 \\ \vdots ]
 \]
 and the first few columns will have all the probabilities of negative values summed into the zero row.
+The markov chain transition matrix will be denoted as $P_{pc,melee}$.
 
-The same definition is essentially true with $u_k = \text{ranged}$ but with $w_{i,d8}$ and resulting in $P(x_{k+1} = j) = 0.45$, $P(x_{k+1} = j-2-1) = \cdots = P(x_{k+1} = j-2-8) = \frac{0.55}{8} = \frac{11}{160} = 0.06875$.
+Essentially the same definition is true with $u_k = \text{ranged}$ but with $w_{i,d8}$ and resulting in $P(x_{k+1} = j) = 0.45$, $P(x_{k+1} = j-2-1) = \cdots = P(x_{k+1} = j-2-8) = \frac{0.55}{8} = \frac{11}{160} = 0.06875$ and denoted with markov chain transition matrix $P_{pc,ranged}$.
 
-Similarly for $u_k = \text{heal}$ but with $w_{i,d4}$ and not having the $w_{sf}$, meaning $P(x_{k+1} = j+1+1) = \cdots = P(x_{k+1} = j+1+4) = 1/4 = 0.25$.
+Similarly for $u_k = \text{heal}$ but with $w_{i,d4}$ and not having the $w_{sf}$, meaning $P(x_{k+1} = j+1+1) = \cdots = P(x_{k+1} = j+1+4) = 1/4 = 0.25$ and denoted with markov chain transition matrix $P_{pc,heal}$.
+
+Finally, for $u_k = \text{nothing}$ the transition matrix is defined as the identity matrix: $P_{pc,nothing} = \vb{I}_{n_{hp,max}}$
+
+\subsubsection{Monster Movement and Actions}
+For the simplistic case the movement is done first deterministically and then the monster actions are performed using the markov chains.
+Selection between the actions would be done deterministically based on position after movement and then the action is the same transition matrix for melee $P_{mn,melee}$, ranged $P_{mn,ranged}$, and nothing $P_{mn,nothing}$ are equivelent to the PC's transition matrices as $P_{pc,melee}$, $P_{pc,ranged}$, and $P_{pc,nothing}$ respectively.
+
+The movement is done as described in the problem definition: $x_{k+1,mn,p} = x_{k,mn,p} + \operatorname{direction}(x_{k+1,pc,p} - x_{k,mn,p})$.
+
+The deterministic action input results in the monsters action being applied \[
+    P_{mn} = \begin{cases}
+        P_{mn,melee} & \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
+        P_{mn,ranged} & \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
+        P_{mn,nothing} & \text{Ranged Range} < \norm{x_{pc,p} - x_{mn,p}}_1
+    \end{cases}
+\] where each will act upon the PC hp.
+
+\subsubsection{Closed-loop Markov Chain}
+The actual markov chains associated with closed-loop will be selected directly based on state and player input by selecting the appropriate markov chains.
+
+Since the assumption that $u_k$ will be limited to those feasible by the PC, the following described as follows:
+
+First, PC movement: $x_{k+1,pc,p} = x_{k,pc,p} + u_{pc,m}$.
+\todo{being able to move after certaintly would add a lot more capability to the player's actions... however this would absolutely complicate it more...}
+
+Second, PC action: \[
+    \mqty[x_{k+1,pc,hp}\\ x_{k+1,mn,hp}] = \begin{cases}
+        \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,melee}] & u_k = \text{melee}\\
+        \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,ranged}] & u_k = \text{ranged}\\
+        \mqty[x_{k,pc,hp}^T P_{pc,heal}\\ x_{k,mn,hp}] & u_k = \text{heal}\\
+        \mqty[x_{k,pc,hp}\\x_{k,mn,hp}] & u_k = \text{nothing}
+    \end{cases}
+\]
+
+Third, monster movement: $x_{k+1,mn,p} = x_{k,mn,p} + \operatorname{direction}(x_{k+1,pc,p} - x_{k,mn,p})$.
+
+Finally, monster action:\[
+    x_{k+1,pc,hp} = \begin{cases}
+        x_{k,pc,hp}^T P_{mn,melee}  & \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Melee Range}\\
+        x_{k,pc,hp}^T P_{mn,ranged} & \text{Melee Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Ranged Range}\\
+        x_{k,pc,hp} & \text{Ranged Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1
+    \end{cases}
+\]
+
+It is possible to incorporate this into a single set of markov chains in higher dimensions; however, this sequential definition seems to make the most sense instead of defining a finite number of position states and closing the loop entirely.
 
 
 
