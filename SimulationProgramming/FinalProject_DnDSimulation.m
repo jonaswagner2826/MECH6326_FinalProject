@@ -83,7 +83,13 @@ move.NW = @(x) x + [-1;1];
 move.SE = @(x) x + [1;1];
 move.SW = @(x) x + [1;-1];
 
-% Dice
+% Action
+action.melee = 1;
+action.ranged = 2;
+action.heal = 3;
+action.nothing = 4;
+
+% Dice (not really used)
 % D.d2 = (1/2)*ones(2,1);
 D.d4 = (1/4)*ones(4,1);
 D.d6 = (1/6)*ones(6,1);
@@ -115,6 +121,7 @@ for j = 1:num_hp_states
         M.pc.melee(i,j) = M.pc.melee(i,j) + P_w_sf(2)/const.pc.melee.d;
     end
 end
+M.pc.melee = M.pc.melee';
 
 % Ranged
 % M.pc.ranged.w_sf = @(w_d20) any([
@@ -132,6 +139,7 @@ for j = 1:num_hp_states
         M.pc.ranged(i,j) = M.pc.ranged(i,j) + P_w_sf(2)/const.pc.ranged.d;
     end
 end
+M.pc.ranged = M.pc.ranged';
 % Heal
 % M.pc.heal.amount = @(w_d4) const.potion.baseheal + w_d4;
 M.pc.heal = zeros(num_hp_states);
@@ -151,7 +159,59 @@ M.mn = M.pc; % same attack assumption (could redefine to be different)
 M.mn.heal = M.pc.nothing; % Heal not possible
 
 
+%% Markov System Update
+% single timestep update setup given the state and input... example
+% does not allow for the position to be updated independently given value
+% of hp currently (although this is posisble if a finite play space is
+% imlimented and a markov chain for movement is defined)
 
+% Initialization
+% Position States
+x.pc.p = [5;-6];
+x.mn.p = [4;-10];
+
+% HP States
+x_0.pc.hp = 10;
+x_0.mn.hp = 15;
+x.pc.hp = zeros(num_hp_states,1); x.pc.hp(x_0.pc.hp+1) = 1;
+x.mn.hp = zeros(num_hp_states,1); x.mn.hp(x_0.mn.hp+1) = 1;
+
+% Markov Implimentation
+u.action = action.melee;
+u.move = move.N; 
+
+% PC Position
+x.pc.p = u.move(x.pc.p);
+
+% PC Action
+switch u.action
+    case action.melee
+        "melee"
+        x.mn.hp = x.mn.hp' * M.pc.melee;
+    case action.ranged
+        "ranged"
+        x.mn.hp = x.mn.hp' * M.pc.ranged;
+    case action.heal
+        "heal"
+        x.pc.hp = x.pc.hp' * M.pc.heal;
+    case action.nothing
+        "nothing"
+%         x.pc.hp = x.pc.hp' * M.pc.nothing;
+end
+
+% Monster Movement
+x.mn.p = x.mn.p + round(normalize(x.pc.p-x.mn.p));
+
+% Monster Action
+dist = norm(x.mn.p - x.pc.p, 1);
+if dist <= const.mn.melee.range
+    x.pc.hp = x.pc.hp'*M.mn.melee;
+elseif dist <= const.mn.ranged.range
+    x.pc.hp = x.pc.hp'*M.mn.ranged;
+else %nothing
+end
+
+% End of update
 
 
 
