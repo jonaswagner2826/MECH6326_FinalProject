@@ -188,6 +188,7 @@ The dice roll noise is defined for dice \{d2, d4, d6, d8, d10, d20, d100\} as
 \[
     w_{pc,dn}, w_{mn,dn} \in \mathcal{W}_{dn} = \{1,2,\dots,n\}
 \] with $n = 2,4,6,8,10,20,100$ respectively and each outcome is equally likely.
+The PDF {\color{red} PMF?} can be seen in shorthand with $P(w_{i,dn} = \smqty[1 & \cdots & n]^T) = \frac{1}{n}\smqty[1 & \cdots & 1]^T$
 
 \subsection{Problem Statement}
 For the simplistic case, let states at time-step $k$, be \[
@@ -203,10 +204,15 @@ Let the stochastic input signal $w_k$ for each time-step be defined as a collect
     % \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
 \] and the associated success/fail noise $\forall_{i=pc,mn}$ be derived as \[
     w_{i,sf} = \begin{cases}
-        0 & {\color{red} 5} + w_{i,d20} < {\color{red} 15} \text{ OR } w_{i,d20} = 1\\
-        1 & {\color{red} 5} + w_{i,d20} \geq {\color{red} 15} \text{ OR } w_{i,d20} = 20\\
+        0 & ({\color{red} 5} + w_{i,d20} < {\color{red} 15} \text{ OR } w_{i,d20} = 1) \text{ AND } w_{i,d20} \neq 1\\
+        1 & ({\color{red} 5} + w_{i,d20} \geq {\color{red} 15} \text{ OR } w_{i,d20} = 20) \text{ AND } w_{i,d20} \neq 1\\
     \end{cases}
 \] \todo{define modifiers as a constant...}
+This results in probabilities of 
+$P(w_{i,sf} = 0) = (P(w_{i,d20} = 1) + P({\color{red} 5} + w_{i,d20} < {\color{red} 15})) - (P(w_{i,d20} = 20)) = 1/20 + 9/20 - 1/20 = 9/20$ 
+and 
+$P(w_{i,sf} = 1) = (P(w_{i,d20} = 20) + P({\color{red} 5} + w_{i,d20} \geq {\color{red} 15})) - (P(w_{i,d20} = 1)) = 1/20 + 11/20 - 1/20 = 11/20$.
+In shorthand, $P(w_{i,sf}=\smqty[0\\1]) = \smqty[0.45\\0.55]$.
 
 The evolution of the very simple system can be described as Markov chains or by a nonlinear update function:\[
     x_{k+1} = f(x_k, u_k, w_k) 
@@ -235,16 +241,16 @@ The evolution of the very simple system can be described as Markov chains or by 
             % \mqty[x_{pc,hp} \\ x_{mn,hp}-w_{pc,sf}(2 + w_{pc,d8})] & u_{pc,a} = \text{Ranged} \text{ AND } \norm{x_{pc,p} - x_{mn,p}} \leq \text{Ranged Range}\\
             % \mqty[x_{pc,hp} + 1 + w_{pc,d4} \\ x_{mn,hp}] & u_{pc,a} = \text{Heal} \text{ AND } \text{Have Potion}\\
             % \mqty[x_{pc,hp} \\ x_{mn,hp}] & u_{pc,a} = \text{Nothing} \text{ OR } \text{Otherwise}
-            \mqty[0 & -w_{pc,sf}(2 + w_{pc,d6}) & 0]^T & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
-            \mqty[0 & -w_{pc,sf}(2 + w_{pc,d8}) & 0]^T & u_{pc,a} = \text{Ranged} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
-            \mqty[1 + w_{pc,d4} & 0 & -1]^T & u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1\\%\text{Have Potion}\\
+            \mqty[0 & -w_{pc,sf}({\color{red}2} + w_{pc,d6}) & 0]^T & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
+            \mqty[0 & -w_{pc,sf}({\color{red}2} + w_{pc,d8}) & 0]^T & u_{pc,a} = \text{Ranged} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
+            \mqty[{\color{red}1} + w_{pc,d4} & 0 & -1]^T & u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1\\%\text{Have Potion}\\
             \mqty[0 & 0 & 0] & u_{pc,a} = \text{Nothing} \text{ OR } \text{Otherwise}
         \end{cases}
     \]
     \item The monsters state dependent action: \[
         f_{pc,a} = \begin{cases}
-            \mqty[-w_{mn,sf}(2 + w_{mn,d6}) & 0 & 0]^T & \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
-            \mqty[- w_{mn,sf}(2 + w_{mn,d8}) & 0 & 0]^T & \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
+            \mqty[-w_{mn,sf}({\color{red}2} + w_{mn,d6}) & 0 & 0]^T & \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
+            \mqty[- w_{mn,sf}({\color{red}2} + w_{mn,d8}) & 0 & 0]^T & \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
             \mqty[0 & 0 & 0]^T & \text{Ranged Range} < \norm{x_{pc,p} - x_{mn,p}}_1
             % [0, 1 + w_{mn,d4}] & u_{mn,a} = \text{Heal} \land \text{Have Potion} \todo{extra state?}\\
             % [0, 0] & u_{mn,a} = \text{Nothing} \lor \text{Otherwise}
@@ -253,6 +259,40 @@ The evolution of the very simple system can be described as Markov chains or by 
 \end{itemize}
 
 The objective function and such is yet to be fully defined, but will consist of minimizing the monsters HP and maintaining the PC HP while also finding a way to minimize the time it takes to kill the monster.
+
+\subsection{Markov Implementation}
+For each of the stochastic functions defined in the update functions from the problem definition a markov chain can be described to better represent the changes between different states.
+Considering that only the actions are stochastic, the chains can be restricted to only the PC and Monster hp where the action input decides which of the chains are selected.
+
+A few additional assumptions must be made to restrict the problem to a markov chain implementation:
+\begin{itemize}
+    \item The monster and pc hp will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
+    \item The ensuring of a potion will be a restriction upon the pc input/result in a nothing action if no potion is available.
+    \item The deterministic movement will allow for monster action selection within closed-loop, however this splits the actual markov chain in two.
+    \item The actual implimentation will keep the pc and monster hp independent of one another with actions being applied to the appropriate hp according to the action; however a proper markov chain would incorporate both into the states.
+\end{itemize}
+
+The states of the markov chain will be artificially independent $x_{pc,k}, x_{mn,k} = P(x_{pc,hp}), _(x_{mn,hp}) \in [0,1]^{n_{hp,max}+1}$.
+The transition matrices will be defined as $[p_{i,j}] = P(x_{k+1} = i, x_{k} = j)$.
+This can be thought of as each column being the probabilistic function results for $f(x_k,w_k), x_{k} = j, w_k = P[w_k]$. \todo{Improve notation of this terrible thing...}
+
+First for the pc actions, which will be done independently from the monsters action which is then applied after according to the position.
+
+When $u_k = \text{Melee}$, the $f(x_k,w_k)$ will act upon $x_{mn,hp}$ with uncertainty $w_k \in \mathcal{W}_{d6}$, resulting in\[
+    f(x_{k+1} = i \st x_{k}=j) = j - w_{pc,melee,sf}*(2+w_{pc,d6}) = j - P(w_{pc,melee,sf}=\smqty[0\\1])\cross (2+w_{pc,d6}P(w_{pc,d6}=\smqty[1&\cdots&6])) = j - [0.45\\0.55] \cross (2+2_{pc,d6}[1/6\\ \vdots \\ 1/6]^T)
+\]\todo{notation terrible}
+resulting in $P(x_{k+1} = j) = 0.45$, $P(x_{k+1} = j-2-1) = \cdots = P(x_{k+1} = j-2-6) = \frac{0.55}{6} = \frac{11}{120} \approx 0.01967$.
+This is incorporated into the markov chain as the column $j$ has \[
+    \mqty{i=1 \\ \vdots \\ i=j-2-7 \\ i=j-2-6\\ \vdots i = j-2-1 \\ i = j-2\\ i= j-1 \\ i=j \\ i=j+1\\ \vdots} \mqty [0\\ \vdots \\ 0\\ 0.019677\\ \vdots \\ 0.01967 \\ 0\\ 0 \\ 0.45 \\ 0 \\ \vdots ]
+\]
+and the first few columns will have all the probabilities of negative values summed into the zero row.
+
+The same definition is essentially true with $u_k = \text{ranged}$ but with $w_{i,d8}$ and resulting in $P(x_{k+1} = j) = 0.45$, $P(x_{k+1} = j-2-1) = \cdots = P(x_{k+1} = j-2-8) = \frac{0.55}{8} = \frac{11}{160} = 0.06875$.
+
+Similarly for $u_k = \text{heal}$ but with $w_{i,d4}$ and not having the $w_{sf}$, meaning $P(x_{k+1} = j+1+1) = \cdots = P(x_{k+1} = j+1+4) = 1/4 = 0.25$.
+
+
+
 
 
 

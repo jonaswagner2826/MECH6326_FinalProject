@@ -19,11 +19,12 @@ function [x_new] = DND_sys_update(x,u,w,const)
         const.pc.strength = 5;
         const.pc.dext = 5;
         const.mn = const.pc; % same stats
-        const.potion.base = 1;
+        const.potion.baseheal = 1;
     end
 
     % Indexes
-    pc_p = 1:2; mn_p = 3:4; pc_hp = 5; mn_hp = 6; pc_potion = 7;
+    pc_p = 1:2; mn_p = 3:4; 
+    pc_hp = 5; mn_hp = 6; pc_potion = 7;
     pc_m = 1:2; pc_a = 3;
     pc_d4 = 1; pc_d6 = 2; pc_d8 = 3; pc_d20 = 4;
     mn_d4 = 5; mn_d6 = 6; mn_d8 = 7; mn_d20 = 8;
@@ -37,12 +38,13 @@ function [x_new] = DND_sys_update(x,u,w,const)
     pc_sf = 0;
     % Melee
     if u(pc_a) == 1 && norm(x_new(pc_p) - x_new(mn_p),1) <= const.pc.melee.range
-        if const.pc.strength + w(pc_d20) >= const.mn.ac && w(pc_d20) ~= 1 % success
+        if const.pc.strength + w(pc_d20) >= const.mn.ac && w(pc_d20) ~= 1
             pc_sf = 1;
         elseif w(pc_d20) == 20
             pc_sf = 1;
         end
-        x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8)); % Melee Damage
+        % Melee Damage
+        x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8));
     % Ranged
     elseif u_pc_a == 2 && norm(x_new(pc_p) - x_new(mn_p),1) <= const.pc.ranged.range
         if const.pc.dext + w(pc_d20) >= const.mn.ac && w(pc_d20) ~= 1
@@ -50,10 +52,11 @@ function [x_new] = DND_sys_update(x,u,w,const)
         elseif w(pc_d20) == 20
             pc_sf = 1;
         end
-        x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.ranged.weapon + w(pc_d6)); % Ranged Damage
+        % Ranged Damage
+        x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.ranged.weapon + w(pc_d6)); 
     % Heal
     elseif u_pc_a == 3 && x_new(pc_potion) >= 1
-        x_new(pc_hp) = x_new(pc_hp) + const.potion.base + w(pc_d4);
+        x_new(pc_hp) = x_new(pc_hp) + const.potion.baseheal + w(pc_d4);
         x_new(pc_potion) = x_new(pc_potion) - 1;
     % Nothing
     end
@@ -66,7 +69,7 @@ function [x_new] = DND_sys_update(x,u,w,const)
     mn_sf = 0;
     % Melee
     if norm(x_new(mn_p) - x_new(pc_p),1) <= const.mn.melee.range
-        if const.mn.strength + w(mn_d20) >= const.pc.ac && w(mn_d20) ~= 1 % success
+        if const.mn.strength + w(mn_d20) >= const.pc.ac && w(mn_d20) ~= 1
             mn_sf = 1;
         elseif w(pc_d20) == 20
             mn_sf = 1;
