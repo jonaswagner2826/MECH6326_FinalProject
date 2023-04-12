@@ -1,6 +1,9 @@
-x_pc_p = [0,0];
-x_mn_p = [5,15];
+x.pc.p = [1;15];
+x.pc.hp = 5;
+x.mn.p = [-5;8];
+x.mn.hp = 10;
 
-for i = 1:15
-    x_mn_p = x_mn_p + round(normalize(x_pc_p - x_mn_p))
-end
+close all
+figure
+plot_DND_visualization(x)
+

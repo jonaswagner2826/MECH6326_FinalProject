@@ -6,9 +6,9 @@ clear all; close all; %clc;
 
 %% System Parameters
 const.pc.melee.range = 1;
-const.pc.melee.weapon = 2;
+const.pc.melee.weapon = 1;
 const.pc.melee.d = 6;
-const.pc.ranged.range = 5;
+const.pc.ranged.range = 3;
 const.pc.ranged.weapon = 2;
 const.pc.ranged.d = 8;
 const.pc.speed = 1;
@@ -25,20 +25,20 @@ grid = zeros(battlefield_size, battlefield_size); %create battlefield
 
 %% Markov Chain Definitions
 % Move 
-move.N = @(x) x + [0;1];
-move.E = @(x) x + [1;0];
-move.S = @(x) x + [0;-1];
-move.W = @(x) x + [-1;0];
-move.NE = @(x) x + [1;1];
-move.NW = @(x) x + [-1;1];
-move.SE = @(x) x + [1;1];
-move.SW = @(x) x + [1;-1];
+const.move.N = @(x) x + [0;1];
+const.move.E = @(x) x + [1;0];
+const.move.S = @(x) x + [0;-1];
+const.move.W = @(x) x + [-1;0];
+% const.move.NE = @(x) x + [1;1];
+% const.move.NW = @(x) x + [-1;1];
+% const.move.SE = @(x) x + [1;1];
+% const.move.SW = @(x) x + [1;-1];
 
 % Action
-action.melee = 1;
-action.ranged = 2;
-action.heal = 3;
-action.nothing = 4;
+const.action.melee = 1;
+const.action.ranged = 2;
+const.action.heal = 3;
+const.action.nothing = 4;
 
 % Dice (not really used)
 % D.d2 = (1/2)*ones(2,1);
@@ -50,7 +50,7 @@ D.d20 = (1/20)*ones(20,1);
 % D.d100 = (1/100)*ones(100,1);
 
 % Actions
-hp_max = 15;
+hp_max = 10;
 hp_states = 0:hp_max;
 num_hp_states = length(hp_states);
 % PC
@@ -117,75 +117,118 @@ M.mn.heal = M.pc.nothing; % Heal not possible
 % does not allow for the position to be updated independently given value
 % of hp currently (although this is posisble if a finite play space is
 % imlimented and a markov chain for movement is defined)
+% 
+% % Initialization
+% % Position States
+% x.pc.p = [5;-6];
+% x.mn.p = [4;-10];
+% 
+% % HP States
+% x_0.pc.hp = 10;
+% x_0.mn.hp = 15;
+% x.pc.hp = zeros(num_hp_states,1); x.pc.hp(x_0.pc.hp+1) = 1;
+% x.mn.hp = zeros(num_hp_states,1); x.mn.hp(x_0.mn.hp+1) = 1;
+% 
+% % Markov Implimentation
+% u.action = const.action.melee;
+% u.move = const.move.N; 
 
-% Initialization
-% Position States
-x.pc.p = [5;-6];
-x.mn.p = [4;-10];
-
-% HP States
-x_0.pc.hp = 10;
-x_0.mn.hp = 15;
-x.pc.hp = zeros(num_hp_states,1); x.pc.hp(x_0.pc.hp+1) = 1;
-x.mn.hp = zeros(num_hp_states,1); x.mn.hp(x_0.mn.hp+1) = 1;
-
-% Markov Implimentation
-u.action = action.melee;
-u.move = move.N; 
-
-% PC Position
-x.pc.p = u.move(x.pc.p);
-
-% PC Action
-switch u.action
-    case action.melee
-        "melee"
-        x.mn.hp = x.mn.hp' * M.pc.melee;
-    case action.ranged
-        "ranged"
-        x.mn.hp = x.mn.hp' * M.pc.ranged;
-    case action.heal
-        "heal"
-        x.pc.hp = x.pc.hp' * M.pc.heal;
-    case action.nothing
-        "nothing"
-%         x.pc.hp = x.pc.hp' * M.pc.nothing;
-end
-
-% Monster Movement
-x.mn.p = x.mn.p + round(normalize(x.pc.p-x.mn.p));
-
-% Monster Action
-dist = norm(x.mn.p - x.pc.p, 1);
-if dist <= const.mn.melee.range
-    x.pc.hp = x.pc.hp'*M.mn.melee;
-elseif dist <= const.mn.ranged.range
-    x.pc.hp = x.pc.hp'*M.mn.ranged;
-else %nothing
-end
-
-% End of update
+% DND_markov_update(x, u, M, const);
 
 %% Dynamic Programming
 % Infinite Horizon, Value Iteration
 
-%Initialize optimal costs, policies for movement
-J.move = zeros(battlefield_size, battlefield_size);
-pi_star.move = J.move;
-J_plus.move = ones(battlefield_size,battlefield_size);
 
-t = 0; %value iteration counter
+% State Space
+relPosMaxDist = 3;
+X.pos.x = -relPosMaxDist:relPosMaxDist; X.pos.y = X.pos.x;
+X.pc.hp = 0:hp_max; X.mn.hp = 0:hp_max;
+[X.values{1}, X.values{2}, X.values{3}, X.values{4}] = ...
+    ndgrid(X.pos.x, X.pos.y, X.pc.hp, X.mn.hp);
 
-while norm(J.move - J_plus.move) >= 1e-6
-    t = t+1;
-    J.move = J_plus.move;
-    for i = 1:battlefield_size
-        for j = 1:battlefield_size
-            %update PC movement
-            
-        end 
+% Input Space
+U.move = fieldnames(const.move);
+U.action = fieldnames(const.action);
+
+% Probabilites from update
+hp_eye = eye(length(X.pc.hp));
+for idx_move = 1:length(U.move); u.move = const.move.(U.move{idx_move});
+    for idx_action = 1:length(U.action); u.action = const.action.(U.action{idx_action});
+        for idx_x = 1:length(X.pos.x); x.pos.x = X.pos.x(idx_x);
+            for idx_y = 1:length(X.pos.y); x.pos.y = X.pos.y(idx_y);
+                for idx_pc_hp = 1:length(X.pc.hp)
+                    x.pc.hp = hp_eye(:,idx_pc_hp);
+%                     x.pc.hp = zeros(length(X.pc.hp),1);
+%                     x.pc.hp(idx_pc_hp) = 1;
+                    for idx_mn_hp = 1:length(X.mn.hp)
+                        x.mn.hp = hp_eye(:,idx_mn_hp);
+%                         x.mn.hp = zeros(length(X.mn.hp),1);
+%                         x.mn.hp(idx_mn_hp) = 1;
+                        x_new = DND_markov_update(x,u,M,const);
+P.pc.hp{idx_move,idx_action}(idx_x,idx_y,idx_pc_hp,idx_mn_hp,:) = ...
+    x_new.pc.hp;
+P.mn.hp{idx_move,idx_action}(idx_x,idx_y,idx_pc_hp,idx_mn_hp,:) = ...
+    x_new.mn.hp;
+                    end
+                end
+            end
+        end
     end
 end
+
+% Initialize optimal costs, policies
+J = zeros(size(X.values(:,:,:,:,1)));%length(X.pos.x),length(X.pos.y),length(X.hp.pc),length(X.hp.mn));
+pi_star = J; %?
+J_plus = ones(size(J));
+
+% Stage Cost
+g_k = @(pc_hp, mn_hp) pc_hp - mn_hp;%x.pc.hp - x.mn.hp;
+G_k = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X.values{3},X.values{4});
+% G = zeros(size(G))
+
+t = 0;
+max_iter = 500;
+%value iteration counter
+while pagenorm(J - J_plus) >= 1e-6
+    t = t+1; % Count iterations
+    J = J_plus;
+    if t > max_iter; break; end
+%     Ju{length(U.move),length(U.action)};
+    for idx_pos_x = 1:length(X.pos.x)
+        for idx_pos_y = 1:length(X.pos.y)
+%             for idx_hp_pc = 1:length(X.hp.pc)
+%                 for idx_hp_mn = 1:length(X.hp.mn)
+                    for idx_move = 1:length(U.move)
+                        for idx_action = 1:length(U.action)
+%                             Ju{idx_move, idx_action} = G_k + ...
+                        end
+                    end
+                    % TODO: follow the procedure outlined in other things
+                    % (mainly a version of L13 and L14) 
+                    % that determines the best selection of u... 
+        end
+%             end
+%         end
+    end
+end
+
+% 
+% J.move = zeros(battlefield_size, battlefield_size);
+% pi_star.move = J.move;
+% J_plus.move = ones(battlefield_size,battlefield_size);
+% 
+% t = 0; %value iteration counter
+% 
+% while norm(J.move - J_plus.move) >= 1e-6
+%     t = t+1;
+%     J.move = J_plus.move;
+%     for i = 1:battlefield_size
+%         for j = 1:battlefield_size
+%             %update PC movement
+%             
+%         end 
+%     end
+% end
 
 
 
