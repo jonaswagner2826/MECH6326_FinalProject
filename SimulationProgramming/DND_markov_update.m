@@ -29,15 +29,15 @@ switch u.action
         x.pc.hp = (x.pc.hp' * M.pc.heal)';
     case const.action.nothing
         "nothing";
-%         x.pc.hp = x.pc.hp' * M.pc.nothing;
+        x.pc.hp = (x.pc.hp' * M.pc.nothing)';
 end
 
 % Monster Movement
 % x.mn.p = x.mn.p + round(normalize(x.pc.p-x.mn.p)); % absolute
 x.pos = x.pos + round(normalize(x.pos)); % relative
 
-% static monster...
-x.pos = x.pos;
+% % static monster...
+% x.pos = x.pos;
 
 % Monster Action
 % dist = norm(x.mn.p - x.pc.p, 1); % absolue
@@ -47,6 +47,7 @@ if dist <= const.mn.melee.range
 elseif dist <= const.mn.ranged.range
     x.pc.hp = (x.pc.hp'*M.mn.ranged)';
 else %nothing
+    x.pc.hp = (x.pc.hp'*M.mn.nothing)';
 end
 
 x_new = x;

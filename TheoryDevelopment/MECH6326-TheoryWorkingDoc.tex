@@ -339,8 +339,36 @@ Finally, monster action:\[
 
 It is possible to incorporate this into a single set of markov chains in higher dimensions; however, this sequential definition seems to make the most sense instead of defining a finite number of position states and closing the loop entirely.
 
+\newpage
+\section{MATLAB implimentation}
+\subsection{Additional Simplifications}
+Due to the nature of the problem being of such high dimension, the following additional simplifications will be done:
+\begin{itemize}
+    \item The policy will be only based on relative distances between the PC and Monster. (i.e.) \[
+        x_{k,pos} = x_{pc,p} - x_{mn,p} = \mqty[x_{pc,p,x} - x_{mn,p,x}\\ x_{pc,p,y} - x_{mn,p,y}]
+    \]
+    This is mainly to reduce the number of dimensions from 4 to 2 and ensure the finite position is useful.
+    \item The objective function will be only based on the relative $HP$ between PC and monster, $x_{pc,hp} - x_{mn,hp}$.
+    Specifically, the stage-cost function will be to maximize this relative $HP$: \[
+        g_k(x_{pc},x_{mn,hp}) = -(x_{pc,hp} - x_{mn,hp})
+    \]
+    \item A value iteration method will be used (first attempted in Infinite-Horizon... but might be a finite horizon instead).
+    \item When determining the policy, the cost-function will be augmented to discourage moving too far away and a strong discouragement of losing (or encouragement of winning) will be included.
+\end{itemize}
 
+\subsection{Optimal Policy}
+\subsubsection{Update Probabilities}
+The probabilites fore each state update (essentially a large-multi dimensional markov-chain) will be computed ahead of time to make the policy optimization more computationally efficient.
+Specifically the closed-loop markov chains will be used to determine the probabilities of future states $\vb{P}[x_{k+1}]$ that can then be used for the expected next time-step cost computation: \[
+    \vb{E}[J(f(x_k,u_k,w_k))] = \vb{P}[x_{k+1}]^T J_{k+1}(x_{k+1})
+\]
 
+\subsubsection{Value Iteration}
+The optimal policy will be determined for every relative position and the current HPs.
+These states will be treated as within a 4-D grid which are looped through (potentially in parallel for computation purposes... or mabye a vector version can be determined...) and the optimal policy will be updated each iteration.
+\todo{this could be explained much better... but essentially use the code from previous examples...}
+
+This could probably instead be done with a much better set of matrix/vector operations but that isn't yet figured out...
 
 
 
