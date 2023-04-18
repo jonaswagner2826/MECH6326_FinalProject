@@ -4,18 +4,30 @@ clear; close all; %clc;
 % Alyssa Vellucci: AMV170001
 % Jonas Wagner: JRW200000
 
+
+recomputeP = false;
+recalculate_pi_star = false;
+
+% sim length
+simLength = 15;
+
+
 %% System Parameters
-const.pc.melee.range = 1;
+const.pc.melee.range = 5;
 const.pc.melee.weapon = 1;
 const.pc.melee.d = 6;
-const.pc.ranged.range = 3;
+const.pc.ranged.range = 10;
 const.pc.ranged.weapon = 2;
 const.pc.ranged.d = 8;
 const.pc.speed = 1;
 const.pc.ac = 15;
 const.pc.strength = 5;
 const.pc.dext = 5;
+const.pc.hp.max = 10;
 const.mn = const.pc; % same stats
+
+const.mn.ranged.weapon = - 2; % for testing...
+
 const.pc.heal.baseheal = 1;
 const.pc.heal.d = 4;
 
@@ -48,9 +60,11 @@ D.d8 = (1/8)*ones(8,1);
 % D.d10 = (1/10)*ones(10,1);
 D.d20 = (1/20)*ones(20,1);
 % D.d100 = (1/100)*ones(100,1);
+D.diceRoll = [4; 6; 8; 20];
+D.diceRoll = [D.diceRoll; D.diceRoll];
 
 % Actions
-hp_max = 10;
+hp_max = max(const.pc.hp.max,const.mn.hp.max);
 hp_states = 0:hp_max;
 num_hp_states = length(hp_states);
 
@@ -104,8 +118,8 @@ M.mn.heal = M.pc.nothing; % Heal not possible
 % Infinite Horizon, Value Iteration
 
 % State Space
-relPosMaxDist = 5;
-X.pos.x = -relPosMaxDist:relPosMaxDist; X.pos.y = X.pos.x;
+const.relPosMax = 5;
+X.pos.x = -const.relPosMax:const.relPosMax; X.pos.y = X.pos.x;
 X.pc.hp = 0:hp_max; X.mn.hp = 0:hp_max;
 [X.values{1}, X.values{2}, X.values{3}, X.values{4}] = ...
     ndgrid(X.pos.x, X.pos.y, X.pc.hp, X.mn.hp);
@@ -115,25 +129,31 @@ U.move = fieldnames(const.move);
 U.action = fieldnames(const.action);
 
 %% Probability Update Computation
-recomputeP = false;
 if recomputeP
     % Update Probabilities update computation
     hp_eye = eye(hp_max+1);
+    x_eye = eye(length(X.pos.x)); y_eye = eye(length(X.pos.y));
     P{length(U.move),length(U.action)} = [];
     for idx_move = 1:length(U.move); u.move = const.move.(U.move{idx_move});
         for idx_action = 1:length(U.action); u.action = const.action.(U.action{idx_action});
+        P{idx_move,idx_action} =...
+        cell(length(X.pos.x), length(X.pos.y), length(X.pc.hp), length(X.mn.hp));
+            
             for idx_x = 1:length(X.pos.x); x.pos.x = X.pos.x(idx_x);
                 for idx_y = 1:length(X.pos.y); x.pos.y = X.pos.x(idx_y);
                     for idx_pc_hp = 1:length(X.pc.hp); x.pc.hp = hp_eye(:,idx_pc_hp);
                         for idx_mn_hp = 1:length(X.mn.hp); x.mn.hp = hp_eye(:,idx_mn_hp);
         % this creates the probability at all posible things...
         x_new = DND_markov_update(x,u,M,const);
-        P{idx_move,idx_action}(idx_x,idx_y,idx_pc_hp,idx_mn_hp,:,:) = ...
-            x_new.pc.hp*x_new.mn.hp';
+        P{idx_move,idx_action}{idx_x,idx_y,idx_pc_hp,idx_mn_hp} = ...
+            sparse(kron(sparse(x_eye(:,x_new.idx.x)*y_eye(:,x_new.idx.y)'), ...
+                        sparse(x_new.pc.hp*x_new.mn.hp')));
                         end
                     end
                 end
             end
+        idx_move
+        idx_action
         end
     end
     save("P_update","P")
@@ -146,7 +166,7 @@ end
 %% Infinite Time Horrizon
 % Initialize optimal costs, policies
 J = zeros(length(X.pos.x),length(X.pos.y),length(X.pc.hp),length(X.mn.hp));
-pi_star.move = zeros(size(J)); pi_star.action = zeros(size(J));
+% pi_star(size(J)) = [];%[struct{'move',0,'action',0}];%.move = zeros(size(J)); pi_star.action = zeros(size(J));
 J_new = ones(size(J));
 
 % Stage Cost
@@ -158,10 +178,12 @@ G_k([1 end],:,:,:) = 10*hp_max; % Don't run away
 G_k(:,[1 end],:,:) = 10*hp_max; % Don't run away
 
 
+if recalculate_pi_star
 % t = 0; %value iteration counter
+N = simLength; % Future Timesteps
 % max_iter = 100;
-N = 15; % Future Timesteps
-pi_star_new = pi_star; clear pi_star; clear J; % for finite version
+% pi_star_new = pi_star; 
+clear pi_star; clear J; % for finite version
 tic
 J_diff = 0;
 pi_star_diff = 0;
@@ -169,163 +191,176 @@ pi_star_diff = 0;
 for k = N:-1:0
     toc
     tic
-    J{k+1} = J_new;
-    pi_star{k+1} = pi_star_new;
+    J{k+1} = G_k;%J_new;
+    if k < N; pi_star{k+1} = pi_star_new; end
 
+    % Cost function for each input
     for idx_move = 1:length(U.move)
-        u.move = const.move.(U.move{idx_move});
+        % u.move = const.move.(U.move{idx_move});
         for idx_action = 1:length(U.action)
-            u.action = const.action.(U.action{idx_action});
-            Ju(:,:,:,:,idx_move,idx_action) = G_k + sum( ...
-                multiprod(P{idx_move,idx_action},J{k+1},[5 6],[3 4]),[5 6]);
+            % u.action = const.action.(U.action{idx_action});
+            % for the fun math computations
+
+            Ju(:,:,:,:,idx_move,idx_action) = G_k + arrayfun(...
+                @(x) reshape(x{1},1,[])*reshape(J{k+1},[],1),...
+                P{idx_move,idx_action});
+
+
+            % Ju(:,:,:,:,idx_move,idx_action) = G_k + cellfun(...
+            %     @(x) sum(x.*reshape(J{k+1},size(x)),"all"),...
+            %     P{idx_move,idx_action});
+
+            % Ju(:,:,:,:,idx_move,idx_action) = G_k + ...
+            %     cell2mat(P{idx_move,idx_action})
+            % cellfun(...
+            %     @(x) reshape(full(x),1,[])*reshape(J{k+1},[],1),...
+            %     P{idx_move,idx_action});
+
+
+
+
+
+
+            % nP = ndims(P{idx_move,idx_action}); sizeP = size(P{idx_move,idx_action});
+            % nJ = ndims(J{k-1}); sizeJ = size(J{k-1});
+
+            % P_permute = permute(P{idx_move,idx_action}, [nP-nJ+1:nP, 1:nP-nJ]);
+
+            % P_reshaped = reshape(P{idx_move,idx_Action}, )
+            % Ju(:,:,:,:,idx_move,idx_action) = G_k + ...
+            %     reshape(dot(reshape(...
+            %     permute(P{idx_move,idx_action}, [nP-nJ+1:nP, 1:nP-nJ]), ...
+            %     [], sizeP(1:nP-nJ) ), ...
+            %     reshape(J{k-1},[],1),1),[sizeP(1:nP-nJ) 1]);
+
+
+
+
+            % A = P{idx_move,idx_action};
+            % B = J{k-1};
+            % szA = size(A);
+            % szB = size(B);
+            % n = ndims(A);
+            % m = ndims(B);
+            % C = reshape(dot(reshape(permute(A,[n-m+1:n 1:n-m]),prod(szA(n-m+1:n)),[]),reshape(B,[],1),1),szA(1:n-m));
+
+% A is the n-dimensional array, and B is the m-dimensional array
+% m = size(B,1); % get the number of elements in B's first dimension
+% last_m_dims = prod(size(A)/(m+1)); % compute the size of the last m dimensions of A
+% A_reshaped = reshape(A, [last_m_dims m+1]); % reshape A to have m+1 dimensions
+% result = sum(bsxfun(@times, A_reshaped(:,end,:), B), 2); % compute the dot product
+
+
+
+
+
+            % sum(multiprod(P{idx_move,idx_action},J{k+1},[5 6],[3 4]),[5 6]);
             % multiprod(P{idx_move,idx_action},J,[5 6],[3 4]),[5 6]); % infinite version
+            idx_move, idx_action
         end
     end
 
+    % Optimal cost function and input
     [J_new, pi_star_idx] = min(Ju,[],[5,6],"linear");
-    [pi_star_new.move,p_star_new.action] = arrayfun(...
-        @(idx) pi_star_from_idx(idx,size(Ju)), pi_star_idx);
+    % [pi_star_new.move,p_star_new.action] = arrayfun(...
+    pi_star_new = arrayfun(...
+        @(idx) pi_star_from_idx(idx, size(Ju), U), pi_star_idx);
     
-
-
+    if k < N
     % t = t+1; % Count iterations
     J_diff_new = norm(J{k+1} - J_new,'fro'); % how much increased/decreased
     % J_diff_new = norm(J - J_new,'fro'); % how much increased/decreased
     J_diff_from_last = J_diff_new - J_diff; % how different is this from last one...
     J_diff = J_diff_new;
 
-    pi_star_diff_new = norm(pi_star{k+1}.move - pi_star_new.move,'fro'); % how much increased/decreased
+    pi_star_diff_new = norm([pi_star{k+1}.move] - [pi_star_new.move],'fro'); % how much increased/decreased
     % pi_star_diff_new = norm(pi_star.move - pi_star_new.move,'fro'); % how much increased/decreased
     pi_star_diff_from_last = pi_star_diff_new - pi_star_diff; % how different is this from last one...
     pi_star_diff = pi_star_diff_new;
-
+    end
+    
     % if t > max_iter; break; end
 end
 
 J_0 = J_new;
 pi_star_0 = pi_star_new; 
-
-
-
-
-
-
-
-% % Terminal Cost
-% g_N = @(pc_hp,mn_hp) pc_hp - mn_hp;
-% G_N = arrayfun(@(pc_hp, mn_hp) g_N(pc_hp, mn_hp), X.values{3},X.values{4});
-
-% Finite-time horrizon
-% J = 
-% for k = N:-1:0
-%     J{k+1} = Jplus;
-% hp_eye = eye(length(X.pc.hp));
-%     for idx_x = 1:length(X.pos.x); x.pos.x = X.pos.x(idx_x);
-%         for idx_y = 1:length(X.pos.y); x.pos.y = X.pos.y(idx_y);
-%             for idx_pc_hp = 1:length(X.pc.hp)
-%                 if X.pc.hp(idx_pc_hp) == 0 % If PC dies
-%                     J_plus(idx_x,idx_y,:,:) = -100;
-%                     continue
-%                 end
-%                 x.pc.hp = hp_eye(:,idx_pc_hp);
-%                 for idx_mn_hp = 1:length(X.mn.hp)
-%                     if X.mn.hp(idx_mn_hp) == 0 % If monster dies
-%                         J_plus(idx_x,idx_y,:,:) = 100; 
-%                     end
-%                     x.mn.hp = hp_eye(:,idx_mn_hp);
-%                     Ju = zeros(length(U.move), length(U.action)); % arbrirary
-%                     for idx_move = 1:length(U.move)
-%                         u.move = const.move.(U.move{idx_move});
-%                         for idx_action = 1:length(U.action)
-%                             u.action = const.action.(U.action{idx_action});
-%                         x_new = DND_markov_update(x,u,M,const);
-%             idx_x_new = find(X.pos.x == x_new.pos(1),1);
-%             idx_y_new = find(X.pos.y == x_new.pos(2),1);
-%             if any([isempty(idx_x_new), isempty(idx_y_new)]); continue; end %if moves too far away...
-%     Ju(idx_move, idx_action) = G_k(idx_x,idx_y,idx_pc_hp,idx_mn_hp) + ...
-%         sum((x_new.pc.hp*x_new.mn.hp').*J(idx_x_new, idx_y_new,:,:),'all'); %P( all new states ) * current J
-%                         end
-%                     end
-%     [J(idx_x,idx_y,idx_pc_hp,idx_mn_hp), pi_idx] = max(Ju,[],"all"); % pi_star is weird... definetly can save as just index and then calculate later...
-%     [idx_move_star,idx_action_star] = ind2sub(size(Ju),pi_idx);
-%         pi_star{idx_x,idx_y,idx_pc_hp,idx_mn_hp} = {...
-%             U.move{idx_move_star};
-%             U.action{idx_action_star}};
-%                 end
-%             end
-%         end
-%     end
-% end
-
-
-
-% % (the following is the code for attempting with infinite horrizon)
-% t = 0;
-% max_iter = 10;
-% %value iteration counter
-% tic
-% diff = 0;
-% while norm(J - J_plus,'fro') >= 1e-6
-%     toc
-%     tic
-%     J = J_plus;
-%     hp_eye = eye(length(X.pc.hp));
-%     for idx_x = 1:length(X.pos.x); x.pos.x = X.pos.x(idx_x);
-%         for idx_y = 1:length(X.pos.y); x.pos.y = X.pos.y(idx_y);
-%             for idx_pc_hp = 1:length(X.pc.hp)
-%                 if X.pc.hp(idx_pc_hp) == 0 % If PC dies
-%                     J_plus(idx_x,idx_y,:,:) = -100;
-%                     continue
-%                 end
-%                 x.pc.hp = hp_eye(:,idx_pc_hp);
-%                 for idx_mn_hp = 1:length(X.mn.hp)
-%                     if X.mn.hp(idx_mn_hp) == 0 % If monster dies
-%                         J_plus(idx_x,idx_y,:,:) = 100;
-%                         continue;
-%                     end
-%                     x.mn.hp = hp_eye(:,idx_mn_hp);
-%                     Ju = zeros(length(U.move), length(U.action));
-%                     for idx_move = 1:length(U.move)
-%                         u.move = const.move.(U.move{idx_move});
-%                         for idx_action = 1:length(U.action)
-%                             u.action = const.action.(U.action{idx_action});
-%                         x_new = DND_markov_update(x,u,M,const);
-%             idx_x_new = find(X.pos.x == x_new.pos(1),1);
-%             idx_y_new = find(X.pos.y == x_new.pos(2),1);
-%             if any([isempty(idx_x_new), isempty(idx_y_new)]); Ju(idx_move,idx_action) = 100; continue; end %if moves too far away...
-%     Ju(idx_move, idx_action) = G_k(idx_x,idx_y,idx_pc_hp,idx_mn_hp) + ...
-%         sum((x_new.pc.hp*x_new.mn.hp').*J(idx_x_new, idx_y_new,:,:),'all'); %P( all new states ) * current J
-%                         end
-%                     end
-%             if t >= 2; 
-%                 x_new.pos
-%                 Ju
-%                 t = t;
-%                 % idx_x = 
-%             end
-%     [J_plus(idx_x,idx_y,idx_pc_hp,idx_mn_hp), pi_idx] = min(Ju,[],"all"); % pi_star is weird... definetly can save as just index and then calculate later...
-%     [idx_move_star,idx_action_star] = ind2sub(size(Ju),pi_idx);
-%         pi_star{idx_x,idx_y,idx_pc_hp,idx_mn_hp} = {...
-%             U.move{idx_move_star};
-%             U.action{idx_action_star}};
-%                 end
-%             end
-%         end
-%     end
-%     t = t+1 % Count iterations
-%     diff_new = norm(J - J_plus,'fro') % how much increased/decreased
-%     diff_from_last = diff_new - diff % how different is this from last one...
-%     diff = diff_new;
-%     if t > max_iter; break; end
-% end
-
-
-
-
-
-function [idx_move,idx_action] = pi_star_from_idx(ind,size_Ju)
-    [~,~,~,~,idx_move,idx_action] = ind2sub(size_Ju,ind);
-    pi_star = [idx_move;idx_action];
+    save("pi_star","pi_star")
+    save("pi_star_0", "pi_star_0")
+else
+    load("pi_star","pi_star")
+    load("pi_star_0", "pi_star_0")
 end
+
+%% Simulation
+% Setup
+% Control Law
+pi_k = @(x,pi_star) pi_star(...
+    X.pos.x==x.pos.x,...
+    X.pos.y==x.pos.y,...
+    X.pc.hp==x.pc.hp,...
+    X.mn.hp==x.mn.hp);
+
+% Intitial State
+[x_0.pc.x, x_0.pc.y] = deal(5, 5); % x_pc_x and x_pc_y
+[x_0.mn.x, x_0.mn.y] = deal(0, 0); % x_mn_x and x_mn_y
+x_0.pos.x = x_0.pc.x - x_0.mn.x; % relative x position
+x_0.pos.y = x_0.pc.y - x_0.mn.y; % relative y position
+x_0.pc.hp = const.pc.hp.max; % initial hp
+x_0.mn.hp = const.mn.hp.max; % initial hp
+x_0.pc.potion = 1;
+
+% Initialization
+rng(0);
+x = x_0;
+u = pi_k(x_0,pi_star_0);
+
+for k = 1:simLength
+    k
+    w.pc.d4 = randi(4); w.pc.d6 = randi(6); w.pc.d8 = randi(8); w.pc.d20 = randi(20);
+    w.mn.d4 = randi(4); w.mn.d6 = randi(6); w.mn.d8 = randi(8); w.mn.d20 = randi(20);
+    % w = arrayfun(@(x) randi(x), D.diceRoll);
+    x = DND_sys_update(x,u,w,const);
+    u = pi_k(x,pi_star{k});
+    X_sim(k) = x;
+    if x.pc.hp <= 0; break; end
+    U_sim(k) = u;
+    W_sim(k) = w;
+end
+
+
+%% Ploting
+close all
+figure
+for k = 1:length(X_sim)
+    plot_DND_visualization(X_sim(k))
+    axis equal
+    title(num2str(k))
+
+    if X_sim(k).pc.hp <=0
+        hold on
+        x = get(gca,'XLim');
+        y = get(gca,'YLim');
+        text(min(x),mean(y),'Game Over!','FontSize',100,'Color','red','BackgroundColor','yellow')
+        break
+    elseif X_sim(k).mn.hp <= 0
+        hold on
+        x = get(gca,'XLim');
+        y = get(gca,'YLim');
+        text(min(x),mean(y),'Game Won!','FontSize',100,'Color','green','BackgroundColor','yellow')
+        break
+    end
+
+    pause(1)
+end
+
+
+
+%% Extra functions
+function pi_star = pi_star_from_idx(idx,size_Ju, U)
+    [~,~,~,~,idx_move,idx_action] = ind2sub(size_Ju,idx);
+    pi_star.move = U.move{idx_move};
+    pi_star.action = U.action{idx_action};
+end
+
 
 

@@ -7,13 +7,13 @@ function plot_DND_visualization(x)
     %   x.mn.p = Monster position
     %   x.mn.hp = Monster Health
 
-    maxHealth = 15;
+    maxHealth = 10;
 
     hold off
     ax = gca;
 
     % PC Location
-    pc.loc = [x.pc.p(1) + [-0.5 0.5]; x.pc.p(2) + [1 -1]];
+    pc.loc = [x.pc.x + [-0.5 0.5]; x.pc.y + [1 -1]];
 %     pc.img = imread('pc_img.png'); % Load image
     pc.img = imread('pc.png'); % Load image
     image(pc.loc(1,:), pc.loc(2,:), pc.img); % Plot the image
@@ -21,7 +21,7 @@ function plot_DND_visualization(x)
     grid on
 
     % Monster Image
-    mn.loc = [x.mn.p(1) + [-0.5 0.5]; x.mn.p(2) + [1 -1]];
+    mn.loc = [x.mn.x + [-0.5 0.5]; x.mn.y + [1 -1]];
 %     mn.img = imread('mn_img.png');
     mn.img = imread('dargon.png');
     image(mn.loc(1,:), mn.loc(2,:), mn.img); % Plot the image
