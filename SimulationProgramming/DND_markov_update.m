@@ -20,15 +20,20 @@ switch u.action
         "melee";
         if norm([x.pos.x;x.pos.y]) <= const.pc.melee.range
             x.mn.hp = (x.mn.hp' * M.pc.melee)';
+        else
+            x.pc.hp = 0*x.pc.hp; % not possible... don't do, you die
         end
     case const.action.ranged
         "ranged";
         if norm([x.pos.x;x.pos.y]) <= const.pc.ranged.range
             x.mn.hp = (x.mn.hp' * M.pc.ranged)';
+        else
+            x.pc.hp = 0*x.pc.hp; % not possible... don't do, you die
         end
     case const.action.heal
         "heal";
         x.pc.hp = (x.pc.hp' * M.pc.heal)';
+        % (should add health check too w/ extra dimension)
     case const.action.nothing
         "nothing";
         x.pc.hp = (x.pc.hp' * M.pc.nothing)';

@@ -6,7 +6,7 @@ clear; close all; %clc;
 
 
 recomputeP = false;
-recalculate_pi_star = false;
+recalculate_pi_star = true;
 
 % sim length
 simLength = 15;
@@ -14,20 +14,24 @@ rng_seed = 25;
 
 
 %% System Parameters
-const.pc.melee.range = 3;
-const.pc.melee.weapon = 1;
+const.pc.melee.range = 2;
+const.pc.melee.weapon = 2;
 const.pc.melee.d = 6;
 const.pc.ranged.range = 5;
 const.pc.ranged.weapon = 2;
 const.pc.ranged.d = 8;
 const.pc.speed = 1;
-const.pc.ac = 15;
+const.pc.ac = 17;%15;
 const.pc.strength = 5;
 const.pc.dext = 5;
-const.pc.hp.max = 10;
+const.pc.hp.max = 15;
 const.mn = const.pc; % same stats
 
-% const.mn.ranged.weapon = - 2; % for testing...
+% For testing... (or final?)
+const.mn.hp.max = 10;
+const.mn.ac = 10;
+const.mn.melee.weapon = 3;
+const.mn.ranged.weapon = 0;
 
 const.pc.heal.baseheal = 1;
 const.pc.heal.d = 4;
@@ -38,15 +42,16 @@ const.pc.heal.d = 4;
 
 %% Markov Chain Definitions
 % Move 
+const.move.stop = @(x) x;
 const.move.N = @(x) x + [0;1];
 const.move.E = @(x) x + [1;0];
 const.move.S = @(x) x + [0;-1];
 const.move.W = @(x) x + [-1;0];
 % diagonal movement...
-const.move.NE = @(x) x + [1;1];
-const.move.NW = @(x) x + [-1;1];
-const.move.SE = @(x) x + [1;1];
-const.move.SW = @(x) x + [1;-1];
+% const.move.NE = @(x) x + [1;1];
+% const.move.NW = @(x) x + [-1;1];
+% const.move.SE = @(x) x + [1;1];
+% const.move.SW = @(x) x + [1;-1];
 
 % Action
 const.action.melee = 1;
@@ -134,7 +139,6 @@ U.action = fieldnames(const.action);
 %% Probability Update Computation
 tic
 if recomputeP
-    toc, tic
     % Update Probabilities update computation
     hp_eye = eye(hp_max+1);
     x_eye = eye(length(X.pos.x)); y_eye = eye(length(X.pos.y));
@@ -144,7 +148,7 @@ if recomputeP
     for idx_move = 1:length(U.move); u.move = const.move.(U.move{idx_move});
         for idx_action = 1:length(U.action); u.action = const.action.(U.action{idx_action});
 
-        idx_move, idx_action
+        idx_move, idx_action, toc, tic
         
             P{idx_move,idx_action}{...
                 X.size(1), X.size(2), X.size(3), X.size(4)} = [];
@@ -181,12 +185,14 @@ J = zeros(length(X.pos.x),length(X.pos.y),length(X.pc.hp),length(X.mn.hp));
 J_new = ones(size(J));
 
 % Stage Cost
-g_k = @(pc_hp, mn_hp) -(pc_hp - mn_hp);
+g_k = @(pc_hp, mn_hp) -3*(pc_hp - mn_hp) - 2*pc_hp;
 G_k = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X.values{3}, X.values{4});
-G_k(:,:,1,:) = 100; % Don't want to die...
-G_k(:,:,:,1) = -100; % Want monster to die...
-G_k([1 end],:,:,:) = 10*hp_max; % Don't run away
-G_k(:,[1 end],:,:) = 10*hp_max; % Don't run away
+G_k(:,:,1,:) = 10; % Don't want to die...
+G_k(:,:,:,1) = -10; % Want monster to die...
+% G_k([1 end],:,:,:) = hp_max; % Don't run away
+% G_k(:,[1 end],:,:) = hp_max; % Don't run away
+
+J_new = 10*G_k; % last step important
 
 
 if recalculate_pi_star
@@ -202,17 +208,16 @@ pi_star_diff = 0;
 for k = N:-1:0
     toc
     tic
-    J{k+1} = G_k;%J_new;
+    J{k+1} = J_new;
     if k < N; pi_star{k+1} = pi_star_new; end
 
     % Cost function for each input
     for idx_move = 1:length(U.move)
-        % u.move = const.move.(U.move{idx_move});
         for idx_action = 1:length(U.action)
 
-    J_future = arrayfun(@(P) P{1}'*reshape(J{k+1},[],1),...
+    J_future = arrayfun(@(P) P{:}'*reshape(J{k+1},[],1),...
         P{idx_move,idx_action});
-    Ju(:,:,:,:,idx_move,idx_action) = G_k + J_future;
+    Ju(:,:,:,:,idx_move,idx_action) = (1/k)*G_k + J_future;
 
         % idx_move, idx_action
         end
@@ -260,7 +265,7 @@ pi_k = @(x,pi_star) pi_star(...
     X.mn.hp==x.mn.hp);
 
 % Intitial State
-[x_0.pc.x, x_0.pc.y] = deal(3, 5); % x_pc_x and x_pc_y
+[x_0.pc.x, x_0.pc.y] = deal(1, 5); % x_pc_x and x_pc_y
 [x_0.mn.x, x_0.mn.y] = deal(-2, 5); % x_mn_x and x_mn_y
 x_0.pos.x = x_0.pc.x - x_0.mn.x; % relative x position
 x_0.pos.y = x_0.pc.y - x_0.mn.y; % relative y position
@@ -274,7 +279,7 @@ x = x_0;
 u = pi_k(x_0,pi_star_0);
 
 for k = 1:simLength
-    k
+    k,u
     w.pc.d4 = randi(4); w.pc.d6 = randi(6); w.pc.d8 = randi(8); w.pc.d20 = randi(20);
     w.mn.d4 = randi(4); w.mn.d6 = randi(6); w.mn.d8 = randi(8); w.mn.d20 = randi(20);
     % w = arrayfun(@(x) randi(x), D.diceRoll);
