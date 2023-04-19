@@ -68,7 +68,7 @@ function [x_new] = DND_sys_update(x,u,w,const)
         end
         % Melee Damage
         % x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8));
-        x_new.mn.hp = x_new.mn.hp - pc_sf*(cosnt.pc.ranged.weapon + w.pc.d8);
+        x_new.mn.hp = x_new.mn.hp - pc_sf*(const.pc.ranged.weapon + w.pc.d8);
 
     % % Ranged
     % elseif u_pc_a == 2 && norm(x_new(pc_p) - x_new(mn_p),1) <= const.pc.ranged.range
@@ -82,7 +82,7 @@ function [x_new] = DND_sys_update(x,u,w,const)
 
     % Heal
     elseif u.action == "heal" && x_new.pc.potion >= 1
-        x_new.pc.hp = x_new.pc.hp + const.potion.baseheal + w.pc.d4;
+        x_new.pc.hp = x_new.pc.hp + const.pc.heal.baseheal + w.pc.d4;
         x_new.pc.potion = x_new.pc.potion - 1;
 
     % elseif u_pc_a == 3 && x_new(pc_potion) >= 1

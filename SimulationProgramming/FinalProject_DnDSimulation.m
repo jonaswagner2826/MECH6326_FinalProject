@@ -10,13 +10,14 @@ recalculate_pi_star = false;
 
 % sim length
 simLength = 15;
+rng_seed = 25;
 
 
 %% System Parameters
-const.pc.melee.range = 5;
+const.pc.melee.range = 3;
 const.pc.melee.weapon = 1;
 const.pc.melee.d = 6;
-const.pc.ranged.range = 10;
+const.pc.ranged.range = 5;
 const.pc.ranged.weapon = 2;
 const.pc.ranged.d = 8;
 const.pc.speed = 1;
@@ -26,7 +27,7 @@ const.pc.dext = 5;
 const.pc.hp.max = 10;
 const.mn = const.pc; % same stats
 
-const.mn.ranged.weapon = - 2; % for testing...
+% const.mn.ranged.weapon = - 2; % for testing...
 
 const.pc.heal.baseheal = 1;
 const.pc.heal.d = 4;
@@ -41,10 +42,11 @@ const.move.N = @(x) x + [0;1];
 const.move.E = @(x) x + [1;0];
 const.move.S = @(x) x + [0;-1];
 const.move.W = @(x) x + [-1;0];
-% const.move.NE = @(x) x + [1;1];
-% const.move.NW = @(x) x + [-1;1];
-% const.move.SE = @(x) x + [1;1];
-% const.move.SW = @(x) x + [1;-1];
+% diagonal movement...
+const.move.NE = @(x) x + [1;1];
+const.move.NW = @(x) x + [-1;1];
+const.move.SE = @(x) x + [1;1];
+const.move.SW = @(x) x + [1;-1];
 
 % Action
 const.action.melee = 1;
@@ -101,7 +103,7 @@ M.pc.heal(1,1) = 1;
 for j = 2:num_hp_states
     for d = 1:const.pc.heal.d
         i = j + const.pc.heal.baseheal + d;
-        if i > num_hp_states; i = num_hp_states;end
+        if i > num_hp_states; i = num_hp_states; end
         M.pc.heal(i,j) = M.pc.heal(i,j) + (1/const.pc.heal.d);
     end
 end
@@ -118,42 +120,51 @@ M.mn.heal = M.pc.nothing; % Heal not possible
 % Infinite Horizon, Value Iteration
 
 % State Space
-const.relPosMax = 5;
+const.relPosMax = 6;
 X.pos.x = -const.relPosMax:const.relPosMax; X.pos.y = X.pos.x;
 X.pc.hp = 0:hp_max; X.mn.hp = 0:hp_max;
 [X.values{1}, X.values{2}, X.values{3}, X.values{4}] = ...
     ndgrid(X.pos.x, X.pos.y, X.pc.hp, X.mn.hp);
+X.size = size(X.values{1});
 
 % Input Space
 U.move = fieldnames(const.move);
 U.action = fieldnames(const.action);
 
 %% Probability Update Computation
+tic
 if recomputeP
+    toc, tic
     % Update Probabilities update computation
     hp_eye = eye(hp_max+1);
     x_eye = eye(length(X.pos.x)); y_eye = eye(length(X.pos.y));
     P{length(U.move),length(U.action)} = [];
+    P{length(U.move),length(U.action)} = {};
+    % P_move{length(U.move),length(U.action)} = [];
     for idx_move = 1:length(U.move); u.move = const.move.(U.move{idx_move});
         for idx_action = 1:length(U.action); u.action = const.action.(U.action{idx_action});
-        P{idx_move,idx_action} =...
-        cell(length(X.pos.x), length(X.pos.y), length(X.pc.hp), length(X.mn.hp));
-            
+
+        idx_move, idx_action
+        
+            P{idx_move,idx_action}{...
+                X.size(1), X.size(2), X.size(3), X.size(4)} = [];
+    
             for idx_x = 1:length(X.pos.x); x.pos.x = X.pos.x(idx_x);
                 for idx_y = 1:length(X.pos.y); x.pos.y = X.pos.x(idx_y);
                     for idx_pc_hp = 1:length(X.pc.hp); x.pc.hp = hp_eye(:,idx_pc_hp);
                         for idx_mn_hp = 1:length(X.mn.hp); x.mn.hp = hp_eye(:,idx_mn_hp);
         % this creates the probability at all posible things...
         x_new = DND_markov_update(x,u,M,const);
-        P{idx_move,idx_action}{idx_x,idx_y,idx_pc_hp,idx_mn_hp} = ...
-            sparse(kron(sparse(x_eye(:,x_new.idx.x)*y_eye(:,x_new.idx.y)'), ...
-                        sparse(x_new.pc.hp*x_new.mn.hp')));
+
+    P_temp = zeros(prod(X.size),1);
+    P_temp(sub2ind(...
+        X.size,x_new.idx.x,x_new.idx.y,1,1)+(1:prod(X.size(3:4)))) = ...
+        x_new.pc.hp*x_new.mn.hp';
+    P{idx_move,idx_action}{idx_x,idx_y,idx_pc_hp,idx_mn_hp} = sparse(P_temp);
                         end
                     end
                 end
             end
-        idx_move
-        idx_action
         end
     end
     save("P_update","P")
@@ -198,65 +209,12 @@ for k = N:-1:0
     for idx_move = 1:length(U.move)
         % u.move = const.move.(U.move{idx_move});
         for idx_action = 1:length(U.action)
-            % u.action = const.action.(U.action{idx_action});
-            % for the fun math computations
 
-            Ju(:,:,:,:,idx_move,idx_action) = G_k + arrayfun(...
-                @(x) reshape(x{1},1,[])*reshape(J{k+1},[],1),...
-                P{idx_move,idx_action});
+    J_future = arrayfun(@(P) P{1}'*reshape(J{k+1},[],1),...
+        P{idx_move,idx_action});
+    Ju(:,:,:,:,idx_move,idx_action) = G_k + J_future;
 
-
-            % Ju(:,:,:,:,idx_move,idx_action) = G_k + cellfun(...
-            %     @(x) sum(x.*reshape(J{k+1},size(x)),"all"),...
-            %     P{idx_move,idx_action});
-
-            % Ju(:,:,:,:,idx_move,idx_action) = G_k + ...
-            %     cell2mat(P{idx_move,idx_action})
-            % cellfun(...
-            %     @(x) reshape(full(x),1,[])*reshape(J{k+1},[],1),...
-            %     P{idx_move,idx_action});
-
-
-
-
-
-
-            % nP = ndims(P{idx_move,idx_action}); sizeP = size(P{idx_move,idx_action});
-            % nJ = ndims(J{k-1}); sizeJ = size(J{k-1});
-
-            % P_permute = permute(P{idx_move,idx_action}, [nP-nJ+1:nP, 1:nP-nJ]);
-
-            % P_reshaped = reshape(P{idx_move,idx_Action}, )
-            % Ju(:,:,:,:,idx_move,idx_action) = G_k + ...
-            %     reshape(dot(reshape(...
-            %     permute(P{idx_move,idx_action}, [nP-nJ+1:nP, 1:nP-nJ]), ...
-            %     [], sizeP(1:nP-nJ) ), ...
-            %     reshape(J{k-1},[],1),1),[sizeP(1:nP-nJ) 1]);
-
-
-
-
-            % A = P{idx_move,idx_action};
-            % B = J{k-1};
-            % szA = size(A);
-            % szB = size(B);
-            % n = ndims(A);
-            % m = ndims(B);
-            % C = reshape(dot(reshape(permute(A,[n-m+1:n 1:n-m]),prod(szA(n-m+1:n)),[]),reshape(B,[],1),1),szA(1:n-m));
-
-% A is the n-dimensional array, and B is the m-dimensional array
-% m = size(B,1); % get the number of elements in B's first dimension
-% last_m_dims = prod(size(A)/(m+1)); % compute the size of the last m dimensions of A
-% A_reshaped = reshape(A, [last_m_dims m+1]); % reshape A to have m+1 dimensions
-% result = sum(bsxfun(@times, A_reshaped(:,end,:), B), 2); % compute the dot product
-
-
-
-
-
-            % sum(multiprod(P{idx_move,idx_action},J{k+1},[5 6],[3 4]),[5 6]);
-            % multiprod(P{idx_move,idx_action},J,[5 6],[3 4]),[5 6]); % infinite version
-            idx_move, idx_action
+        % idx_move, idx_action
         end
     end
 
@@ -267,19 +225,20 @@ for k = N:-1:0
         @(idx) pi_star_from_idx(idx, size(Ju), U), pi_star_idx);
     
     if k < N
-    % t = t+1; % Count iterations
-    J_diff_new = norm(J{k+1} - J_new,'fro'); % how much increased/decreased
-    % J_diff_new = norm(J - J_new,'fro'); % how much increased/decreased
-    J_diff_from_last = J_diff_new - J_diff; % how different is this from last one...
-    J_diff = J_diff_new;
-
-    pi_star_diff_new = norm([pi_star{k+1}.move] - [pi_star_new.move],'fro'); % how much increased/decreased
-    % pi_star_diff_new = norm(pi_star.move - pi_star_new.move,'fro'); % how much increased/decreased
-    pi_star_diff_from_last = pi_star_diff_new - pi_star_diff; % how different is this from last one...
-    pi_star_diff = pi_star_diff_new;
+    % % t = t+1; % Count iterations
+    % J_diff_new = norm(J{k+1} - J_new,'fro'); % how much increased/decreased
+    % % J_diff_new = norm(J - J_new,'fro'); % how much increased/decreased
+    % J_diff_from_last = J_diff_new - J_diff; % how different is this from last one...
+    % J_diff = J_diff_new;
+    % 
+    % pi_star_diff_new = norm([pi_star{k+1}.move] - [pi_star_new.move],'fro'); % how much increased/decreased
+    % % pi_star_diff_new = norm(pi_star.move - pi_star_new.move,'fro'); % how much increased/decreased
+    % pi_star_diff_from_last = pi_star_diff_new - pi_star_diff; % how different is this from last one...
+    % pi_star_diff = pi_star_diff_new;
     end
     
     % if t > max_iter; break; end
+    k
 end
 
 J_0 = J_new;
@@ -301,8 +260,8 @@ pi_k = @(x,pi_star) pi_star(...
     X.mn.hp==x.mn.hp);
 
 % Intitial State
-[x_0.pc.x, x_0.pc.y] = deal(5, 5); % x_pc_x and x_pc_y
-[x_0.mn.x, x_0.mn.y] = deal(0, 0); % x_mn_x and x_mn_y
+[x_0.pc.x, x_0.pc.y] = deal(3, 5); % x_pc_x and x_pc_y
+[x_0.mn.x, x_0.mn.y] = deal(-2, 5); % x_mn_x and x_mn_y
 x_0.pos.x = x_0.pc.x - x_0.mn.x; % relative x position
 x_0.pos.y = x_0.pc.y - x_0.mn.y; % relative y position
 x_0.pc.hp = const.pc.hp.max; % initial hp
@@ -310,7 +269,7 @@ x_0.mn.hp = const.mn.hp.max; % initial hp
 x_0.pc.potion = 1;
 
 % Initialization
-rng(0);
+rng(rng_seed);
 x = x_0;
 u = pi_k(x_0,pi_star_0);
 
@@ -323,6 +282,7 @@ for k = 1:simLength
     u = pi_k(x,pi_star{k});
     X_sim(k) = x;
     if x.pc.hp <= 0; break; end
+    if x.mn.hp <= 0; break; end
     U_sim(k) = u;
     W_sim(k) = w;
 end

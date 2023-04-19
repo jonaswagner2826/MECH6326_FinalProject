@@ -29,11 +29,11 @@ function plot_DND_visualization(x)
 
     
     % PC Health
-    pc.health = x.pc.hp/maxHealth;
+    pc.health = max(x.pc.hp/maxHealth,0);
     rectangle('Position', [pc.loc(1,2), pc.loc(2,2) 0.25, 2], 'FaceColor', 'k')
     rectangle('Position', [pc.loc(1,2), pc.loc(2,2) 0.25, 2*pc.health], 'FaceColor', 'g')
     % MN Health
-    mn.health = x.mn.hp/maxHealth;
+    mn.health = max(x.mn.hp/maxHealth);
     rectangle('Position', [mn.loc(1,2), mn.loc(2,2) 0.25, 2], 'FaceColor', 'k')
     rectangle('Position', [mn.loc(1,2), mn.loc(2,2) 0.25, 2*mn.health], 'FaceColor', 'g')
     
