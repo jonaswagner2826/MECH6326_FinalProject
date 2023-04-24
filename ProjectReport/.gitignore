@@ -1,0 +1,16 @@
+# List of untracked files to ignore
+
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.ent
+*.snm
+*.nav
+*.bbl
+*.blg
+
+drafts
