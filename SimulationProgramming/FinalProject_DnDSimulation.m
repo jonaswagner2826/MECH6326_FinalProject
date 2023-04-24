@@ -184,8 +184,9 @@ results = DND_simulate_sys(x_0, pi_k, pi_star_0, const, pi_star);
 if runDNDvisulaization
 close all
 figure
-for k = 1:length(results.X)
-    plot_DND_visualization(results.X(k))
+U_sim(length(X_sim)) = U_sim(length(X_sim) - 1);
+for k = 1:length(X_sim)
+    plot_DND_visualization(X_sim(k), U_sim(k))
     ylim([0,10]);
     xlim([-4,4]);
     title("Round: ", num2str(k))

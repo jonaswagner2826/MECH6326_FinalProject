@@ -1,4 +1,4 @@
-function plot_DND_visualization(x)
+function plot_DND_visualization(x, u)
     %PLOT_DND_VISUALIZATION()
     %   plots a visualization of the current state of the DND system
     %   x = state w/
@@ -6,8 +6,11 @@ function plot_DND_visualization(x)
     %   x.pc.hp = PC Health
     %   x.mn.p = Monster position
     %   x.mn.hp = Monster Health
+    %   u = input w/
+    %   u.action = chosen action
+    
 
-    maxHealth = 10;
+    maxHealth = 15;
 
     hold off
     ax = gca;
@@ -15,7 +18,16 @@ function plot_DND_visualization(x)
     % PC Location
     pc.loc = [x.pc.x + [-0.5 0.5]; x.pc.y + [1 -1]];
 %     pc.img = imread('pc_img.png'); % Load image
-    pc.img = imread('pc.png'); % Load image
+    if u.action == "melee"
+        pc.img = imread('pc_melee.png'); % Load image
+    elseif u.action == "ranged"
+        pc.img = imread('pc_ranged.png');
+    elseif u.action == "heal"
+        pc.img = imread('pc_heal.png');
+    else
+        pc.img = imread('pc_img.png');
+    end
+
     image(pc.loc(1,:), pc.loc(2,:), pc.img); % Plot the image
     hold on
     grid on
