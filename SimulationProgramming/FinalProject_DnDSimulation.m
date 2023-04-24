@@ -298,8 +298,9 @@ end
 %% Plotting
 close all
 figure
+U_sim(length(X_sim)) = U_sim(length(X_sim) - 1);
 for k = 1:length(X_sim)
-    plot_DND_visualization(X_sim(k))
+    plot_DND_visualization(X_sim(k), U_sim(k))
     ylim([0,10]);
     xlim([-4,4]);
     title("Round: ", num2str(k))
