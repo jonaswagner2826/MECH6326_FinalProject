@@ -25,7 +25,7 @@ switch u.action
         end
     case const.action.ranged
         "ranged";
-        if norm([x.pos.x;x.pos.y]) <= const.pc.ranged.range
+        if norm([x.pos.x;x.pos.y]) <= const.pc.ranged.range && (norm([x.pos.x;x.pos.y]) > const.pc.melee.range) 
             x.mn.hp = (x.mn.hp' * M.pc.ranged)';
         else
             x.pc.hp = 0*x.pc.hp; % not possible... don't do, you die

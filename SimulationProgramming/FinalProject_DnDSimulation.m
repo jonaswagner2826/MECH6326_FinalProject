@@ -5,7 +5,7 @@ clear; close all; %clc;
 % Jonas Wagner: JRW200000
 
 
-recomputeP = false;
+recomputeP = true;
 recalculate_pi_star = true;
 
 % sim length
@@ -15,11 +15,11 @@ rng_seed = 25;
 
 %% System Parameters
 const.pc.melee.range = 2;
-const.pc.melee.weapon = 2;
-const.pc.melee.d = 6;
+const.pc.melee.weapon = 0;
+const.pc.melee.d = 4;
 const.pc.ranged.range = 5;
-const.pc.ranged.weapon = 2;
-const.pc.ranged.d = 8;
+const.pc.ranged.weapon = 0;
+const.pc.ranged.d = 6;
 const.pc.speed = 1;
 const.pc.ac = 17;%15;
 const.pc.strength = 5;
@@ -28,10 +28,10 @@ const.pc.hp.max = 15;
 const.mn = const.pc; % same stats
 
 % For testing... (or final?)
-const.mn.hp.max = 10;
-const.mn.ac = 10;
-const.mn.melee.weapon = 3;
-const.mn.ranged.weapon = 0;
+% const.mn.hp.max = 10;
+% const.mn.ac = 10;
+% const.mn.melee.weapon = 3;
+% const.mn.ranged.weapon = 0;
 
 const.pc.heal.baseheal = 1;
 const.pc.heal.d = 4;
@@ -243,7 +243,7 @@ for k = N:-1:0
     end
     
     % if t > max_iter; break; end
-    k
+    k;
 end
 
 J_0 = J_new;
@@ -283,35 +283,39 @@ for k = 1:simLength
     w.pc.d4 = randi(4); w.pc.d6 = randi(6); w.pc.d8 = randi(8); w.pc.d20 = randi(20);
     w.mn.d4 = randi(4); w.mn.d6 = randi(6); w.mn.d8 = randi(8); w.mn.d20 = randi(20);
     % w = arrayfun(@(x) randi(x), D.diceRoll);
-    x = DND_sys_update(x,u,w,const);
+    [x, pc_hit, mn_hit] = DND_sys_update(x,u,w,const);
     u = pi_k(x,pi_star{k});
     X_sim(k) = x;
     if x.pc.hp <= 0; break; end
     if x.mn.hp <= 0; break; end
     U_sim(k) = u;
     W_sim(k) = w;
+    pc_pf(k) = pc_hit
+    mn_pf(k) = mn_hit
 end
 
 
-%% Ploting
+%% Plotting
 close all
 figure
 for k = 1:length(X_sim)
     plot_DND_visualization(X_sim(k))
-    axis equal
-    title(num2str(k))
+    ylim([0,10]);
+    xlim([-4,4]);
+    title("Round: ", num2str(k))
+    pause(0.5)
 
     if X_sim(k).pc.hp <=0
         hold on
         x = get(gca,'XLim');
         y = get(gca,'YLim');
-        text(min(x),mean(y),'Game Over!','FontSize',100,'Color','red','BackgroundColor','yellow')
+        text(min(x),mean(y),'Game Over!','FontSize',25,'Color','red','BackgroundColor','yellow')
         break
     elseif X_sim(k).mn.hp <= 0
         hold on
         x = get(gca,'XLim');
         y = get(gca,'YLim');
-        text(min(x),mean(y),'Game Won!','FontSize',100,'Color','green','BackgroundColor','yellow')
+        text(min(x),mean(y),'Game Won!','FontSize',25,'Color','green','BackgroundColor','yellow')
         break
     end
 
