@@ -138,10 +138,9 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
         % Melee Damage
         % x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8));
         x_new.pc.hp = x_new.pc.hp - mn_sf*(const.mn.ranged.weapon + w.mn.d8);
-
-        x_new.pc.hp = max(x_new.pc.hp,0); % PC dies
+       
     % Heal
     % Nothing
     end
-
+    x_new.pc.hp = max(x_new.pc.hp,0); % PC dies
 end

@@ -2,13 +2,13 @@ function M = DND_construct_relative_markov(num_hp_states, const)
     % PC ----------------------------------------------
     % Melee
     M.pc.melee = single_M_calc(num_hp_states, ...
-        const.pc.strength-const.mn.ac, ...
+        const.mn.ac - const.pc.strength, ...
         const.pc.melee.weapon,...
         const.pc.melee.d);
 
     % Ranged
     M.pc.ranged = single_M_calc(num_hp_states, ...
-        const.pc.dext - const.mn.ac,...
+        const.mn.ac - const.pc.dext,...
         const.pc.ranged.weapon,...
         const.pc.ranged.d);
 
@@ -30,13 +30,13 @@ function M = DND_construct_relative_markov(num_hp_states, const)
     % Monster --------------------------------------
     % Melee
     M.mn.melee = single_M_calc(num_hp_states, ...
-        const.mn.strength-const.pc.ac, ...
+        const.pc.ac - const.mn.strength, ...
         const.mn.melee.weapon,...
         const.mn.melee.d);
 
     % Ranged
     M.mn.ranged = single_M_calc(num_hp_states, ...
-        const.mn.dext - const.pc.ac,...
+        const.pc.ac - const.mn.dext,...
         const.mn.ranged.weapon,...
         const.mn.ranged.d);
 
@@ -46,16 +46,16 @@ end
 
 
 
-function M = single_M_calc(num_hp_states, sf_modifier, hp_modifier, size_dice)
+function M = single_M_calc(num_hp_states, sf_modifier, weap_modifier, size_dice)
     M = zeros(num_hp_states);
-    P_s = (20 + sf_modifier)/20 + 1/20 - 1/20;
-    P_sf = [P_s, 1-P_s];
+    P_s = ((20 - sf_modifier)/20);
+    P_f = 1- P_s;
     for i = 1:num_hp_states
-        M(i,i) = P_sf(1);
+        M(i,i) = P_f;
         for d = 1:size_dice % loop through dice rolls
-            j = i - hp_modifier - d;
+            j = i - weap_modifier - d;
             if j < 1; j = 1;end %zero out any negative states
-            M(i,j) = M(i,j) + P_sf(2)/size_dice;
+            M(i,j) = M(i,j) + P_s/size_dice;
         end
     end
 end

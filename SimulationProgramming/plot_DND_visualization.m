@@ -25,7 +25,7 @@ function plot_DND_visualization(x, u)
     elseif u.action == "heal"
         pc.img = imread('pc_heal.png');
     else
-        pc.img = imread('pc_img.png');
+        pc.img = imread('pc_nothing.png');
     end
 
     image(pc.loc(1,:), pc.loc(2,:), pc.img); % Plot the image

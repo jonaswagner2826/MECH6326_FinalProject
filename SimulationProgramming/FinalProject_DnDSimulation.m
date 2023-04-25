@@ -5,14 +5,14 @@
 % Jonas Wagner: JRW200000
 
 
-recomputeP = false;
-recalculate_pi_star = false;
-runDNDvisulaization = false;
+recomputeP = true;
+recalculate_pi_star = true;
+runDNDvisualization = true;
 
 % Sim Settings
 const.finiteHorrizon = 15;
 const.battlefieldsize = 15;
-rng_seed = 25;
+rng_seed = 420;
 
 
 %% System Parameters
@@ -23,7 +23,7 @@ const.pc.ranged.range = 5;
 const.pc.ranged.weapon = 0;
 const.pc.ranged.d = 6;
 const.pc.speed = 1;
-const.pc.ac = 17;%15;
+const.pc.ac = 12;%15;
 const.pc.strength = 5;
 const.pc.dext = 5;
 const.pc.hp.max = 15;
@@ -105,7 +105,8 @@ end
 %% Finite Time Horrizon
 
 % Stage Cost
-g_k = @(pc_hp, mn_hp) -3*(pc_hp - mn_hp) - 2*pc_hp;
+% g_k = @(pc_hp, mn_hp) -3*(pc_hp - mn_hp) - 2*pc_hp;
+g_k = @(pc_hp, mn_hp) - 2*pc_hp;
 G_k = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X.values{3}, X.values{4});
 G_k(:,:,1,:) = 10; % Don't want to die...
 G_k(:,:,:,1) = -10; % Want monster to die...
@@ -173,7 +174,7 @@ pi_k = @(x,pi_star) pi_star(...
 % x_0.pos.y = x_0.pc.y - x_0.mn.y; % relative y position
 x_0.pc.hp = const.pc.hp.max; % initial hp
 x_0.mn.hp = const.mn.hp.max; % initial hp
-x_0.pc.potion = 1;
+x_0.pc.potion = 2;
 
 % Run Sim
 rng(rng_seed);
@@ -181,12 +182,12 @@ results = DND_simulate_sys(x_0, pi_k, pi_star_0, const, pi_star);
 
 
 %% Single Result Plotting
-if runDNDvisulaization
+if runDNDvisualization
 close all
 figure
-U_sim(length(X_sim)) = U_sim(length(X_sim) - 1);
-for k = 1:length(X_sim)
-    plot_DND_visualization(X_sim(k), U_sim(k))
+results.U(length(results.X)) = results.U(length(results.X) - 1);
+for k = 1:length(results.X)
+    plot_DND_visualization(results.X(k), results.U(k))
     ylim([0,10]);
     xlim([-4,4]);
     title("Round: ", num2str(k))
@@ -214,7 +215,7 @@ end
 
 %% Monte Carlo
 
-num_sims = 10;
+num_sims = 1000;
 
 % Initial conditions
 clear x_0 X_0 monte_carlo_results monte_carlo_final;
@@ -222,7 +223,7 @@ clear x_0 X_0 monte_carlo_results monte_carlo_final;
 [x_0.mn.x, x_0.mn.y] = deal(-2, 5); % x_mn_x and x_mn_y
 x_0.pc.hp = const.pc.hp.max; % initial hp
 x_0.mn.hp = const.mn.hp.max; % initial hp
-x_0.pc.potion = 1;
+x_0.pc.potion = 2;
 
 
 
@@ -230,9 +231,10 @@ x_0.pc.potion = 1;
 monte_carlo_results(num_sims) = results;
 monte_carlo_final(num_sims) = results(end).X(end);
 X_0(num_sims) = x_0;
+
 % Run sims
 for i = 1:num_sims
-
+   
     X_0(i) = x_0;
     X_0(i).pc.x = datasample(-const.battlefieldsize:const.battlefieldsize,1);
     X_0(i).mn.x = X_0(i).pc.x + datasample(X.pos.x,1);
@@ -250,7 +252,7 @@ end
 X_final.pc.hp = arrayfun(@(result) ...
     result.X(end).pc.hp, monte_carlo_results);
 X_final.mn.hp = arrayfun(@(result) ...
-    result.X(end).pc.hp, monte_carlo_results);
+    result.X(end).mn.hp, monte_carlo_results);
 
 
 
