@@ -96,6 +96,8 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
     end
 
     % Monster Dies
+    x_new.mn.x = max(min(x_new.mn.x,const.battlefieldsize),const.battlefieldsize);
+    x_new.mn.y = max(min(x_new.mn.y,const.battlefieldsize),const.battlefieldsize);
     x_new.mn.hp = max(x_new.mn.hp,0);
     if x_new.mn.hp == 0; return; end 
 
