@@ -32,8 +32,12 @@ switch u.action
         end
     case const.action.heal
         "heal";
-        x.pc.hp = (x.pc.hp' * M.pc.heal)';
-        % (should add health check too w/ extra dimension)
+        if x.pc.potion >= 1
+            x.pc.hp = (x.pc.hp' * M.pc.heal)';
+            x.pc.potion = 0;
+        else
+            x.pc.hp = 0*x.pc.hp; % not possible... don't do, you'll die
+        end
     case const.action.nothing
         "nothing";
         x.pc.hp = (x.pc.hp' * M.pc.nothing)';

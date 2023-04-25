@@ -5,7 +5,7 @@
 % Jonas Wagner: JRW200000
 
 
-recomputeP = true;
+recomputeP = false;
 recalculate_pi_star = true;
 runDNDvisualization = true;
 
@@ -84,8 +84,9 @@ M = DND_construct_relative_markov(num_hp_states, const);
 % State Space
 X.pos.x = -const.relPosMax:const.relPosMax; X.pos.y = X.pos.x;
 X.pc.hp = 0:hp_max; X.mn.hp = 0:hp_max;
-[X.values{1}, X.values{2}, X.values{3}, X.values{4}] = ...
-    ndgrid(X.pos.x, X.pos.y, X.pc.hp, X.mn.hp);
+X.pc.potion = [0,1];
+[X.values{1}, X.values{2}, X.values{3}, X.values{4}, X.values{5}] = ...
+    ndgrid(X.pos.x, X.pos.y, X.pc.hp, X.mn.hp, X.pc.potion);
 X.size = size(X.values{1});
 
 % Input Space
@@ -118,7 +119,8 @@ G_k(:,:,:,1) = -10; % Want monster to die...
 
 if recalculate_pi_star
 % Initialize optimal costs, policies
-J = zeros(length(X.pos.x),length(X.pos.y),length(X.pc.hp),length(X.mn.hp));
+J = zeros(length(X.pos.x),length(X.pos.y),...
+    length(X.pc.hp),length(X.mn.hp),length(X.pc.potion));
 J_new = ones(size(J));
 % J_new = 10*G_k; % last step important
 
@@ -137,14 +139,15 @@ for k = N:-1:0
 
     J_future = arrayfun(@(P) P{:}'*reshape(J{k+1},[],1),...
         P{idx_move,idx_action});
-    Ju(:,:,:,:,idx_move,idx_action) = G_k + J_future; 
+    Ju(:,:,:,:,:,idx_move,idx_action) = G_k + J_future; 
 
         % idx_move, idx_action
+        
         end
     end
 
     % Optimal cost function and input
-    [J_new, pi_star_idx] = min(Ju,[],[5,6],"linear");
+    [J_new, pi_star_idx] = min(Ju,[],[6,7],"linear");
     pi_star_new = arrayfun(...
         @(idx) pi_star_from_idx(idx, size(Ju), U), pi_star_idx);
 end
@@ -165,7 +168,8 @@ pi_k = @(x,pi_star) pi_star(...
     X.pos.x==x.pos.x,...
     X.pos.y==x.pos.y,...
     X.pc.hp==x.pc.hp,...
-    X.mn.hp==x.mn.hp);
+    X.mn.hp==x.mn.hp,...
+    X.pc.potion==min(1,x.pc.potion));
 
 % Intitial State
 [x_0.pc.x, x_0.pc.y] = deal(1, 5); % x_pc_x and x_pc_y
@@ -248,17 +252,33 @@ for i = 1:num_sims
     % monte_carlo_final(i) = monte_carlo_results(i).X(end);
 end
 
-% hp_results = 
+%% hp_results = 
 X_final.pc.hp = arrayfun(@(result) ...
     result.X(end).pc.hp, monte_carlo_results);
 X_final.mn.hp = arrayfun(@(result) ...
     result.X(end).mn.hp, monte_carlo_results);
 
+HP_results = [X_final.pc.hp; X_final.mn.hp];
+figure;
+hold on
+% scatterhist(X_final.pc.hp, X_final.mn.hp);
+% h1 = histogram(X_final.pc.hp);
+% h2 = histogram(-X_final.mn.hp);
+% subplot(1,2,1)
+histogram(X_final.pc.hp(X_final.pc.hp>0))
+% set(gca,'XDir','reverse')
+% subplot(1,2,2)
+histogram(-X_final.mn.hp(X_final.mn.hp>0))
+% c = histogram(X_final.pc.hp);
+% d = histogram(-X_final.mn.hp);
+% % a = bar(M1,'hist');
+% % b = bar(-F1,'hist');
+% veiw(gca,-90,90)
 
 
 %% Extra functions
 function pi_star = pi_star_from_idx(idx,size_Ju, U)
-    [~,~,~,~,idx_move,idx_action] = ind2sub(size_Ju,idx);
+    [~,~,~,~,~,idx_move,idx_action] = ind2sub(size_Ju,idx);
     pi_star.move = U.move{idx_move};
     pi_star.action = U.action{idx_action};
 end
