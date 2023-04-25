@@ -1,16 +1,16 @@
-% clear; close all; %clc;
+clear; close all; %clc;
 
 %% MECH 6326 Final Project: D&D Combat Simulation
 % Alyssa Vellucci: AMV170001
 % Jonas Wagner: JRW200000
 
 
-recomputeP = false;
+recomputeP = true;
 recalculate_pi_star = true;
 runDNDvisualization = true;
 
 % Sim Settings
-const.finiteHorrizon = 15;
+const.finiteHorrizon = 25;
 const.battlefieldsize = 15;
 rng_seed = 420;
 
@@ -26,7 +26,7 @@ const.pc.speed = 1;
 const.pc.ac = 12;%15;
 const.pc.strength = 5;
 const.pc.dext = 5;
-const.pc.hp.max = 15;
+const.pc.hp.max = 10;
 const.mn = const.pc; % same stats
 
 % For testing... (or final?)
@@ -39,7 +39,7 @@ const.pc.heal.baseheal = 1;
 const.pc.heal.d = 4;
 
 % Pi_star Setup
-const.relPosMax = 6;
+const.relPosMax = 5;
 const.finiteHorrizon = 15;
 
 %% Markov Chain Definitions
@@ -106,11 +106,11 @@ end
 %% Finite Time Horrizon
 
 % Stage Cost
-% g_k = @(pc_hp, mn_hp) -3*(pc_hp - mn_hp) - 2*pc_hp;
-g_k = @(pc_hp, mn_hp) - 2*pc_hp;
+g_k = @(pc_hp, mn_hp) 0;%-3*(pc_hp - mn_hp);% - 2*pc_hp;
+% g_k = @(pc_hp, mn_hp) - 2*pc_hp;
 G_k = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X.values{3}, X.values{4});
-G_k(:,:,1,:) = 10; % Don't want to die...
-G_k(:,:,:,1) = -10; % Want monster to die...
+G_k(:,:,1,:) = 1; % Don't want to die...
+G_k(:,:,:,1) = -1; % Want monster to die...
 % G_k([1 end],:,:,:) = hp_max; % Don't run away
 % G_k(:,[1 end],:,:) = hp_max; % Don't run away
 
@@ -119,13 +119,14 @@ G_k(:,:,:,1) = -10; % Want monster to die...
 
 if recalculate_pi_star
 % Initialize optimal costs, policies
-J = zeros(length(X.pos.x),length(X.pos.y),...
-    length(X.pc.hp),length(X.mn.hp),length(X.pc.potion));
-J_new = ones(size(J));
+% J = zeros(length(X.pos.x),length(X.pos.y),...
+%     length(X.pc.hp),length(X.mn.hp),length(X.pc.potion));
+% J_new = ones(size(J));
 % J_new = 10*G_k; % last step important
+J_new = G_k;
 
 N = const.finiteHorrizon; % Future Timesteps
-clear pi_star; clear J; % for finite version
+% clear pi_star; clear J; % for finite version
 
 tic
 for k = N:-1:0
@@ -249,7 +250,6 @@ for i = 1:num_sims
     
     monte_carlo_results(i) = DND_simulate_sys(...
         X_0(i), pi_k, pi_star_0, const, pi_star);
-    % monte_carlo_final(i) = monte_carlo_results(i).X(end);
 end
 
 %% hp_results = 
@@ -265,10 +265,10 @@ hold on
 % h1 = histogram(X_final.pc.hp);
 % h2 = histogram(-X_final.mn.hp);
 % subplot(1,2,1)
-histogram(X_final.pc.hp(X_final.pc.hp>0))
+histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
 % set(gca,'XDir','reverse')
 % subplot(1,2,2)
-histogram(-X_final.mn.hp(X_final.mn.hp>0))
+histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
 % c = histogram(X_final.pc.hp);
 % d = histogram(-X_final.mn.hp);
 % % a = bar(M1,'hist');

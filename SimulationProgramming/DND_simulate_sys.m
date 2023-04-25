@@ -15,7 +15,9 @@ function results = DND_simulate_sys(x_0, pi_k, pi_star_0, const, pi_star)
         % x.pos is saturation
         x.pos.x = min(max(x.pc.x - x.mn.x,-const.relPosMax),const.relPosMax);
         x.pos.y = min(max(x.pc.y - x.mn.y,-const.relPosMax),const.relPosMax);
+
         u = pi_k(x,pi_star{k});
+        % u = pi_k(x,pi_star_0); % infinite horrizon atteempt
         results.X(k) = x;
         if x.pc.hp <= 0; break; end
         if x.mn.hp <= 0; break; end

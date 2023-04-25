@@ -32,12 +32,10 @@ switch u.action
         end
     case const.action.heal
         "heal";
-        if x.pc.potion >= 1
-            x.pc.hp = (x.pc.hp' * M.pc.heal)';
-            x.pc.potion = 0;
-        else
-            x.pc.hp = 0*x.pc.hp; % not possible... don't do, you'll die
-        end
+        M_update_heal = x.pc.potion(1)*M.pc.heal ...
+            + x.pc.potion(2)*M.pc.nothing;
+        x.pc.hp = (x.pc.hp'*M_update_heal)';
+        x.pc.potion = [1;0];
     case const.action.nothing
         "nothing";
         x.pc.hp = (x.pc.hp' * M.pc.nothing)';

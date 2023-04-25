@@ -3,9 +3,9 @@ function P = DND_construct_absolute_markov(hp_max, X, U, const, M)
     % Update Probabilities update computation
     hp_eye = eye(hp_max+1);
     potion_eye = eye(2);
-    P{length(U.move),length(U.action)} = [];
+    % P{length(U.move),length(U.action)} = [];
     P{length(U.move),length(U.action)} = {};
-    % P_move{length(U.move),length(U.action)} = [];
+    tic
     for idx_move = 1:length(U.move); u.move = const.move.(U.move{idx_move});
         for idx_action = 1:length(U.action); u.action = const.action.(U.action{idx_action});
 
