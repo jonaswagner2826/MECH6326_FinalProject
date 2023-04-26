@@ -244,96 +244,75 @@ for i = 1:num_sims
 end
 save("data/monte_carlo_results.mat","monte_carlo_results")
 
-% Monte Carlo Results 
-X_final.pc.hp = arrayfun(@(result) ...
-    result.X(end).pc.hp, monte_carlo_results);
-X_final.mn.hp = arrayfun(@(result) ...
-    result.X(end).mn.hp, monte_carlo_results);
+plot_DND_sim_results(monte_carlo_results, 'Monte Carlo');
 
-%% Visualize Monte Carlo
-% Win loss tie
-figure;
-hold on
-names = {'PC and Monster Live','Monster Dies, PC Lives', 'Monster Lives, PC Dies'};
-x = [1:3];
-y = [sum(all([X_final.mn.hp>0;X_final.pc.hp>0])),
-    sum(all([X_final.mn.hp==0;X_final.pc.hp>0])),
-    sum(all([X_final.mn.hp>0;X_final.pc.hp==0]))];
-bar(x,y)
-set(gca,'XTick',1:length(names),'XTickLabel',names)
-ylabel('# of Simulations');
-saveas(gcf,"figs/DND_MonteCarlo_winlosstie.png")
-
-% Monte-Carlo Results
-figure
-hold on
-histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
-histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
-title("Monte-Carlo Simulation Results")
-xlabel('Final HP State')
-ylabel('# of Simulations')
-legend('Monster Dies: PC HP', 'PC Dies: Monster HP')
-
-saveas(gcf,"figs/DND_MonteCarlo_Hist.png")
+% % Monte Carlo Results 
+% X_final.pc.hp = arrayfun(@(result) ...
+%     result.X(end).pc.hp, monte_carlo_results);
+% X_final.mn.hp = arrayfun(@(result) ...
+%     result.X(end).mn.hp, monte_carlo_results);
+% 
+% % Visualize Monte Carlo
+% % Win loss tie
+% figure;
+% hold on
+% names = {'PC and Monster Live','Monster Dies, PC Lives', 'Monster Lives, PC Dies'};
+% x = [1:3];
+% y = [sum(all([X_final.mn.hp>0;X_final.pc.hp>0])),...
+%     sum(all([X_final.mn.hp==0;X_final.pc.hp>0])),...
+%     sum(all([X_final.mn.hp>0;X_final.pc.hp==0]))];
+% bar(x,y)
+% set(gca,'XTick',1:length(names),'XTickLabel',names)
+% ylabel('# of Simulations');
+% saveas(gcf,"figs/DND_MonteCarlo_winlosstie.png")
+% 
+% % Monte-Carlo Results
+% figure
+% hold on
+% histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
+% histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
+% title("Monte-Carlo Simulation Results")
+% xlabel('Final HP State')
+% ylabel('# of Simulations')
+% legend('Monster Dies: PC HP', 'PC Dies: Monster HP')
+% 
+% saveas(gcf,"figs/DND_MonteCarlo_Hist.png")
 
 
 %% Comparison to us
-for i = 1:5 % comparrision version
-x_0 = X_0(i);
-x = x_0;
-u = struct('move','stop','action','nothing');
-figure
-plot_DND_visualization(x,u)
-rng(i)
-for k = 1:const.finiteHorrizon
-    if x.pc.hp <= 0; break; end
-    if x.mn.hp <= 0; break; end
-    pause(1)
-    u.move = input('Move Selection','s');
-    u.action = input('Action Selection','s')
-    w.pc.d4 = randi(4); w.pc.d6 = randi(6); w.pc.d8 = randi(8); w.pc.d20 = randi(20);
-    w.mn.d4 = randi(4); w.mn.d6 = randi(6); w.mn.d8 = randi(8); w.mn.d20 = randi(20);
-    [x, pc_hit, mn_hit] = DND_sys_update(x,u,w,const);
-    plot_DND_visualization(x,u)
-    player_results(i).X(k) = x;
-    player_results(i).U(k) = u;
-    player_results(i).W(k) = w;
+if player_comparrision
+    num_player_runs = 5;
+    player_results(num_player_runs) = results; % initalization (overwritten)
+    for i = 1:num_player_runs
+        player_name = input('Player Name: ','s');
+        x_0 = X_0(i); x = x_0; % from MonteCarlo Sim
+        u = struct('move','stop','action','nothing');
+        figure
+        plot_DND_visualization(x,u)
+        rng(i)
+        for k = 1:const.finiteHorrizon
+            if x.pc.hp <= 0; break; end
+            if x.mn.hp <= 0; break; end
+            pause(1)
+            u.move = input('Move Selection {stop,N,S,E,W,NE,NW,SE,SW}: ','s');
+            u.action = input('Action Selection {melee, ranged, heal, nothing}: ','s');
+            w.pc.d4 = randi(4); w.pc.d6 = randi(6); w.pc.d8 = randi(8); w.pc.d20 = randi(20);
+            w.mn.d4 = randi(4); w.mn.d6 = randi(6); w.mn.d8 = randi(8); w.mn.d20 = randi(20);
+            [x, pc_hit, mn_hit] = DND_sys_update(x,u,w,const);
+            plot_DND_visualization(x,u)
+            player_results(i).X(k) = x;
+            player_results(i).U(k) = u;
+            player_results(i).W(k) = w;
+            player_results(i).pc_hit(k) = pc_hit;
+            player_results(i).mn_hit(k) = mn_hit;
+        end
+    end
+
+    save(['data/','player_',player_name,'_results.mat'],"player_results")
+
+    plot_DND_sim_results(player_results, ['Player (', player_name, ')']);
+
 end
-end
-save("data/player_results.mat","player_results")
-
-
-%% Visualize Jonas Results
-X_final.pc.hp = arrayfun(@(result) ...
-    result.X(end).pc.hp, player_results);
-X_final.mn.hp = arrayfun(@(result) ...
-    result.X(end).mn.hp, player_results);
-% Win loss tie
-figure;
-hold on
-names = {'PC and Monster Live','Monster Dies, PC Lives', 'Monster Lives, PC Dies'};
-x = [1:3];
-y = [sum(all([X_final.mn.hp>0;X_final.pc.hp>0])),
-    sum(all([X_final.mn.hp==0;X_final.pc.hp>0])),
-    sum(all([X_final.mn.hp>0;X_final.pc.hp==0]))];
-bar(x,y)
-set(gca,'XTick',1:length(names),'XTickLabel',names)
-ylabel('# of Simulations');
-title("Jonas Attempt")
-saveas(gcf,"figs/DND_Jonas_winlosstie.png")
-
-% Monte-Carlo Results
-figure
-hold on
-histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
-histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
-title("Jonas Simulation Results")
-xlabel('Final HP State')
-ylabel('# of Simulations')
-legend('Monster Dies: PC HP', 'PC Dies: Monster HP')
-
-saveas(gcf,"figs/DND_Jonas_Hist.png")
-
 %% Extra functions
 function pi_star = pi_star_from_idx(idx,size_Ju, U)
     [~,~,~,~,~,idx_move,idx_action] = ind2sub(size_Ju,idx);
