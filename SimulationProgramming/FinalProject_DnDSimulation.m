@@ -1,12 +1,12 @@
-clear; close all; %clc;
+% clear; close all; %clc;
 
 %% MECH 6326 Final Project: D&D Combat Simulation
 % Alyssa Vellucci: AMV170001
 % Jonas Wagner: JRW200000
 
 
-recomputeP = true;
-recalculate_pi_star = true;
+recomputeP = false;
+recalculate_pi_star = false;
 runDNDvisualization = true;
 
 % Sim Settings
@@ -106,7 +106,7 @@ end
 %% Finite Time Horrizon
 
 % Stage Cost
-g_k = @(pc_hp, mn_hp) 0;%-3*(pc_hp - mn_hp);% - 2*pc_hp;
+g_k = @(pc_hp, mn_hp) -pc_hp;%-3*(pc_hp - mn_hp);% - 2*pc_hp;
 % g_k = @(pc_hp, mn_hp) - 2*pc_hp;
 G_k = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X.values{3}, X.values{4});
 G_k(:,:,1,:) = 1; % Don't want to die...
@@ -131,14 +131,14 @@ N = const.finiteHorrizon; % Future Timesteps
 tic
 for k = N:-1:0
     k, toc, tic
-    J{k+1} = J_new;
+    % J{k+1} = J_new;
     if k < N; pi_star{k+1} = pi_star_new; end
 
     % Cost function for each input
     for idx_move = 1:length(U.move)
         for idx_action = 1:length(U.action)
 
-    J_future = arrayfun(@(P) P{:}'*reshape(J{k+1},[],1),...
+    J_future = arrayfun(@(P) P{:}'*reshape(J_new,[],1),...
         P{idx_move,idx_action});
     Ju(:,:,:,:,:,idx_move,idx_action) = G_k + J_future; 
 
@@ -214,7 +214,7 @@ for k = 1:length(results.X)
         break
     end
 
-    pause(1)
+    pause(0.5)
 end
 end
 
@@ -269,6 +269,7 @@ histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
 % set(gca,'XDir','reverse')
 % subplot(1,2,2)
 histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
+bar(sum(all([X_final.mn.hp>0;X_final.pc.hp>0])))
 % c = histogram(X_final.pc.hp);
 % d = histogram(-X_final.mn.hp);
 % % a = bar(M1,'hist');

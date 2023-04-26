@@ -19,8 +19,7 @@ function P = DND_construct_absolute_markov(hp_max, X, U, const, M)
                     for idx_pc_hp = 1:length(X.pc.hp); x.pc.hp = hp_eye(:,idx_pc_hp);
                         for idx_mn_hp = 1:length(X.mn.hp); x.mn.hp = hp_eye(:,idx_mn_hp);
                             for idx_potion = 1:length(X.pc.potion); x.pc.potion = potion_eye(:,idx_potion);
-            % this creates the probability at all posible things...
-            x_new = DND_markov_update(x,u,M,const);
+        x_new = DND_markov_update(x,u,M,const);
     
         P_temp = zeros(prod(X.size),1);
         P_temp(sub2ind(...
