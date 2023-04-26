@@ -152,8 +152,8 @@ For HP, let \[
 The inputs to the system consist of movement and actions impacting the position and hp states respectively.
 For movement, a deterministic input of 
 \begin{multline}
-    u_{pc,m}, u_{mn,m} \in \mathcal{U}_{m} = \text{\{N, E, S, W, NE, NW, SE, SW\}}\\
-    =\{(-1,0), (+1,0), (0,-1),(0,+1), (-1,-1), (-1,+1), (+1,-1),(+1,+1)\}
+    u_{pc,m}, u_{mn,m} \in \mathcal{U}_{m} = \text{\{Stop, N, E, S, W, NE, NW, SE, SW\}}\\
+    =\{(0,0),(-1,0), (+1,0), (0,-1),(0,+1), (-1,-1), (-1,+1), (+1,-1),(+1,+1)\}
 \end{multline}
 
 For actions, all the actions (except nothing) each are stochastic and can be represented as Markov chains or as a combination of input and noise term, $u_{pc,a}, u_{mn,a} \in \mathcal{U}_{a} = \{\text{Melee, Ranged, Heal, Nothing}\}$.
@@ -192,8 +192,10 @@ The PDF {\color{red} PMF?} can be seen in shorthand with $P(w_{i,dn} = \smqty[1 
 
 \subsection{Problem Statement}
 For the simplistic case, let states at time-step $k$, be \[
-    x_k = \mqty[x_{pc,p}\\x_{mn,p}\\x_{pc,hp}\\x_{mn,hp}\\ x_{pc,potion}] \in \mathcal{X} = \mathcal{X}_p^2 \cross \mathcal{X}_{hp}^2 \subseteq \Z^{4} \cross \Z_{+}^{2} \cross \Z_{+}
-\] where states and sets are defined as before and $x_{pc,potion}$ is the number of potions available to the PC.
+    x_k = \mqty[x_{pc,p}\\x_{mn,p}\\x_{pc,hp}\\x_{mn,hp}\\ x_{pc,potion}] 
+    \in \mathcal{X} = \mathcal{X}_p^2 \cross \mathcal{X}_{hp}^2 \cross \mathcal{X}_{potion}
+    \subseteq \Z^{4} \cross \Z_{+}^{2} \cross \Z_{+}
+\] where states and sets are defined as before and $x_{pc,potion} \in \mathcal{X}_{potion}$ is the number of potions available to the PC.
 
 Let the inputs to the system be only the players inputs \[
     u_k = \mqty[u_{pc,m}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
@@ -204,8 +206,8 @@ Let the stochastic input signal $w_k$ for each time-step be defined as a collect
     % \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
 \] and the associated success/fail noise $\forall_{i=pc,mn}$ be derived as \[
     w_{i,sf} = \begin{cases}
-        0 & ({\color{red} 5} + w_{i,d20} < {\color{red} 15} \text{ OR } w_{i,d20} = 1) \text{ AND } w_{i,d20} \neq 1\\
-        1 & ({\color{red} 5} + w_{i,d20} \geq {\color{red} 15} \text{ OR } w_{i,d20} = 20) \text{ AND } w_{i,d20} \neq 1\\
+        0 & ({\color{red} 5} + w_{i,d20} \leq {\color{red} 15} \text{ OR } w_{i,d20} = 1) \text{ AND } w_{i,d20} \neq 1\\
+        1 & ({\color{red} 5} + w_{i,d20} > {\color{red} 15} \text{ OR } w_{i,d20} = 20) \text{ AND } w_{i,d20} \neq 1\\
     \end{cases}
 \] \todo{define modifiers as a constant...}
 This results in probabilities of 
@@ -241,16 +243,16 @@ The evolution of the very simple system can be described as Markov chains or by 
             % \mqty[x_{pc,hp} \\ x_{mn,hp}-w_{pc,sf}(2 + w_{pc,d8})] & u_{pc,a} = \text{Ranged} \text{ AND } \norm{x_{pc,p} - x_{mn,p}} \leq \text{Ranged Range}\\
             % \mqty[x_{pc,hp} + 1 + w_{pc,d4} \\ x_{mn,hp}] & u_{pc,a} = \text{Heal} \text{ AND } \text{Have Potion}\\
             % \mqty[x_{pc,hp} \\ x_{mn,hp}] & u_{pc,a} = \text{Nothing} \text{ OR } \text{Otherwise}
-            \mqty[0 & -w_{pc,sf}({\color{red}2} + w_{pc,d6}) & 0]^T & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
-            \mqty[0 & -w_{pc,sf}({\color{red}2} + w_{pc,d8}) & 0]^T & u_{pc,a} = \text{Ranged} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
+            \mqty[0 & -w_{pc,sf}({\color{red}0} + w_{pc,d6}) & 0]^T & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
+            \mqty[0 & -w_{pc,sf}({\color{red}0} + w_{pc,d8}) & 0]^T & u_{pc,a} = \text{Ranged} \text{ AND } \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
             \mqty[{\color{red}1} + w_{pc,d4} & 0 & -1]^T & u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1\\%\text{Have Potion}\\
             \mqty[0 & 0 & 0] & u_{pc,a} = \text{Nothing} \text{ OR } \text{Otherwise}
         \end{cases}
     \]
     \item The monsters state dependent action: \[
-        f_{pc,a} = \begin{cases}
-            \mqty[-w_{mn,sf}({\color{red}2} + w_{mn,d6}) & 0 & 0]^T & \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
-            \mqty[- w_{mn,sf}({\color{red}2} + w_{mn,d8}) & 0 & 0]^T & \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
+        f_{mn,a} = \begin{cases}
+            \mqty[-w_{mn,sf}({\color{red}0} + w_{mn,d6}) & 0 & 0]^T & \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
+            \mqty[- w_{mn,sf}({\color{red}0} + w_{mn,d8}) & 0 & 0]^T & \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
             \mqty[0 & 0 & 0]^T & \text{Ranged Range} < \norm{x_{pc,p} - x_{mn,p}}_1
             % [0, 1 + w_{mn,d4}] & u_{mn,a} = \text{Heal} \land \text{Have Potion} \todo{extra state?}\\
             % [0, 0] & u_{mn,a} = \text{Nothing} \lor \text{Otherwise}

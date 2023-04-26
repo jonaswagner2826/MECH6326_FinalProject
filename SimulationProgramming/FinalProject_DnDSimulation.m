@@ -104,7 +104,11 @@ G_k(:,:,:,1) = -1; % Want monster to die...
 
 if recalculate_pi_star
 % Initialize optimal costs, policies
-J_new = G_k;
+% for p = 1:length(P)
+%     P{p} = cellfun(@(P) gpuArray(P), P{p}, 'UniformOutput',false);
+% end
+% J_new = gpuArray(G_k);
+J_new = sparse(G_k);
 
 N = const.finiteHorrizon; % Future Timesteps
 
@@ -247,6 +251,7 @@ X_final.mn.hp = arrayfun(@(result) ...
 
 %% Visualize Monte Carlo
 % Win loss tie
+
 figure;
 hold on
 names = {'PC and Monster Live','Monster Dies, PC Lives', 'Monster Lives, PC Dies'};
@@ -270,6 +275,7 @@ ylabel('# of Simulations')
 legend('Monster Dies: PC HP', 'PC Dies: Monster HP')
 
 saveas(gcf,"figs/DND_MonteCarlo_Hist.png")
+
 
 %% Extra functions
 function pi_star = pi_star_from_idx(idx,size_Ju, U)
