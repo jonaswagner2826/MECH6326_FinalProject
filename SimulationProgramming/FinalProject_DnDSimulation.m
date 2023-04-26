@@ -253,7 +253,11 @@ if player_comparrision
     for i = 1:num_player_runs
         player_name = input('Player Name: ','s');
         x_0 = X_0(i); x = x_0; % from MonteCarlo Sim
+<<<<<<< HEAD
         u = struct('move','stop', 'action','nothing'); % For visualization
+=======
+        u = struct('move','stop', 'action','nothing'); % For plotting
+>>>>>>> e79f33fd655c521a3598c930099aba5c15f7cd5b
         figure
         plot_DND_visualization(x,u)
         rng(i)
