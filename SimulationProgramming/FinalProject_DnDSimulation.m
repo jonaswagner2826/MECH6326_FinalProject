@@ -7,7 +7,8 @@
 
 recomputeP = false;
 recalculate_pi_star = false;
-runDNDvisualization = true;
+runDNDvisualization = false;
+player_comparrision = true;
 
 % Sim Settings
 const.finiteHorrizon = 50;
@@ -281,12 +282,11 @@ plot_DND_sim_results(monte_carlo_results, 'Monte Carlo');
 
 %% Comparison to us
 if player_comparrision
-    num_player_runs = 5;
-    player_results(num_player_runs) = results; % initalization (overwritten)
+    num_player_runs = 1;
     for i = 1:num_player_runs
         player_name = input('Player Name: ','s');
         x_0 = X_0(i); x = x_0; % from MonteCarlo Sim
-        u = struct('move','stop','action','nothing');
+        u = struct('move','stop', 'action','nothing'); % For plotting
         figure
         plot_DND_visualization(x,u)
         rng(i)
@@ -300,12 +300,13 @@ if player_comparrision
             w.mn.d4 = randi(4); w.mn.d6 = randi(6); w.mn.d8 = randi(8); w.mn.d20 = randi(20);
             [x, pc_hit, mn_hit] = DND_sys_update(x,u,w,const);
             plot_DND_visualization(x,u)
-            player_results(i).X(k) = x;
-            player_results(i).U(k) = u;
-            player_results(i).W(k) = w;
-            player_results(i).pc_hit(k) = pc_hit;
-            player_results(i).mn_hit(k) = mn_hit;
+            temp_results.X(k) = x;
+            temp_results.U(k) = u;
+            temp_results.W(k) = w;
+            temp_results.pc_sf(k) = pc_hit;
+            temp_results.mn_sf(k) = mn_hit;
         end
+        player_results(i) = temp_results;
     end
 
     save(['data/','player_',player_name,'_results.mat'],"player_results")
