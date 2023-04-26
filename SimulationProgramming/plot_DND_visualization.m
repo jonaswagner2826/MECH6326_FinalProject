@@ -19,13 +19,13 @@ function plot_DND_visualization(x, u)
     pc.loc = [x.pc.x + [-0.5 0.5]; x.pc.y + [1 -1]];
 %     pc.img = imread('pc_img.png'); % Load image
     if u.action == "melee"
-        pc.img = imread('pc_melee.png'); % Load image
+        pc.img = imread('visualization/pc_melee.png'); % Load image
     elseif u.action == "ranged"
-        pc.img = imread('pc_ranged.png');
+        pc.img = imread('visualization/pc_ranged.png');
     elseif u.action == "heal"
-        pc.img = imread('pc_heal.png');
+        pc.img = imread('visualization/pc_heal.png');
     else
-        pc.img = imread('pc_nothing.png');
+        pc.img = imread('visualization/pc_nothing.png');
     end
 
     image(pc.loc(1,:), pc.loc(2,:), pc.img); % Plot the image
@@ -35,7 +35,7 @@ function plot_DND_visualization(x, u)
     % Monster Image
     mn.loc = [x.mn.x + [-0.5 0.5]; x.mn.y + [1 -1]];
 %     mn.img = imread('mn_img.png');
-    mn.img = imread('dargon.png');
+    mn.img = imread('visualization/dargon.png');
     image(mn.loc(1,:), mn.loc(2,:), mn.img); % Plot the image
 
 
@@ -50,11 +50,11 @@ function plot_DND_visualization(x, u)
     rectangle('Position', [mn.loc(1,2), mn.loc(2,2) 0.25, 2*mn.health], 'FaceColor', 'g')
 
     if pc.health == 0
-        pc.img = imread("pc_dead.png");
+        pc.img = imread("visualization/pc_dead.png");
     end
 
     if mn.health == 0
-        mn.img = imread("dargon_dead.png");
+        mn.img = imread("visualization/dargon_dead.png");
     end
     
 % %     hold on

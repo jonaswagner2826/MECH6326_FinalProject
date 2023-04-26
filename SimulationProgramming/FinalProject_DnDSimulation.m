@@ -96,9 +96,9 @@ U.action = fieldnames(const.action);
 %% Probability Update Computation
 if recomputeP
     P = DND_construct_absolute_markov(hp_max, X, U, const, M);
-    save("P_update","P")
+    save("data/P_update","P")
 elseif ~exist("P",'var')
-    load("P_update.mat","P")
+    load("data/P_update.mat","P")
 end
 
 
@@ -155,11 +155,11 @@ end
 
     J_0 = J_new;
     pi_star_0 = pi_star_new; 
-    save("pi_star","pi_star") 
-    save("pi_star_0", "pi_star_0") 
+    save("data/pi_star","pi_star") 
+    save("data/pi_star_0", "pi_star_0") 
 elseif ~any([exist("pi_star","var"),exist("pi_star_0","var")])
-    load("pi_star","pi_star");
-    load("pi_star_0", "pi_star_0");
+    load("data/pi_star.mat","pi_star");
+    load("data/pi_star_0.mat", "pi_star_0");
 end
 
 %% Simulation
@@ -182,22 +182,27 @@ x_0.mn.hp = const.mn.hp.max; % initial hp
 x_0.pc.potion = 2;
 
 % Run Sim
-rng_seed = 2826;
+for rng_seed = [69, 420, 171, 2826, 1997]
+% rng_seed = 2826;
 rng(rng_seed);
 results = DND_simulate_sys(x_0, pi_k, pi_star_0, const, pi_star);
 
 % Single Result Plotting
 if runDNDvisualization
-close all
+% close all
 figure
 results.U(length(results.X)) = results.U(length(results.X) - 1);
-animation_filename = ['DND_SingleSim_Animation','_rng_seed=',...
-    num2str(rng_seed),'.gif'];
+animation_filename = ['figs/','DND_SingleSim_Animation','_rng_seed=',...
+    num2str(rng_seed),'.mp4'];
+v = VideoWriter(animation_filename,'MPEG-4');
+v.FrameRate = 1;
+open(v);
 for k = 1:length(results.X)
     plot_DND_visualization(results.X(k), results.U(k))
     ylim([0,10]);
     xlim([-4,4]);
-    title("Round: ", num2str(k))
+    title("DND Simulation", ...
+        ['Seed =', num2str(rng_seed),' Round =', num2str(k)])
 
     if results.X(k).pc.hp <=0
         hold on
@@ -205,27 +210,29 @@ for k = 1:length(results.X)
         y = get(gca,'YLim');
         text(min(x),mean(y),'Game Over!',...
             'FontSize',25,'Color','red','BackgroundColor','yellow')
-        break
     elseif results.X(k).mn.hp <= 0
         hold on
         x = get(gca,'XLim');
         y = get(gca,'YLim');
         text(min(x),mean(y),'Game Won!', ...
             'FontSize',25,'Color','green','BackgroundColor','yellow')
-        break
     end
 
     drawnow
     frame = getframe(gcf);
-    im = frame2im(frame);
-    [imind,cm] = rgb2ind(im,256);
-    if k == 1
-        imwrite(imind,cm,animation_filename,'gif', 'Loopcount',inf);
-    else
-        imwrite(imind,cm,animation_filename,'gif','WriteMode','append');
-    end
+    writeVideo(v,frame);
+    % im = frame2im(frame);
+    % [imind,cm] = rgb2ind(im,256);
+    % if k == 1
+    %     imwrite(imind,cm,animation_filename,'gif', 'Loopcount',inf);
+    % else
+    %     imwrite(imind,cm,animation_filename,'gif','WriteMode','append');
+    % end
 
-    pause(0.5)
+    % pause(0.5)
+end
+writeVideo(v,frame);
+close(v);
 end
 end
 
@@ -250,6 +257,7 @@ X_0(num_sims) = x_0;
 
 % Run sims
 for i = 1:num_sims
+    rng(i)
    
     X_0(i) = x_0;
     X_0(i).pc.x = datasample(-const.battlefieldsize:const.battlefieldsize,1);
@@ -269,9 +277,9 @@ X_final.pc.hp = arrayfun(@(result) ...
 X_final.mn.hp = arrayfun(@(result) ...
     result.X(end).mn.hp, monte_carlo_results);
 
-HP_results = [X_final.pc.hp; X_final.mn.hp];
 figure;
 hold on
+<<<<<<< HEAD
 % scatterhist(X_final.pc.hp, X_final.mn.hp);
 % h1 = histogram(X_final.pc.hp);
 % h2 = histogram(-X_final.mn.hp);
@@ -301,7 +309,21 @@ ylabel('# of Simulations');
 % % a = bar(M1,'hist');
 % % b = bar(-F1,'hist');
 % veiw(gca,-90,90)
+=======
+histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])), ...
+    "DisplayName","PC Wins")
+histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])), ...
+    "DisplayName","Monster Wins")
+bar(X_final.pc.hp(all([X_final.mn.hp>0;X_final.pc.hp>0]))...
+    - X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp>0])), ...
+    "DisplayName","Neither Wins")
+title("Monte-Carlo Simulation Results")
+xlabel("HP_{PC} - HP_{MN}","Interpreter","tex")
+ylabel("Number of Sims")
+legend
+>>>>>>> 05265b0cf3b476f02f07190fd63bbb0aeabe24c5
 
+saveas(gcf,"figs/DND_MonteCarlo_Hist.png")
 
 %% Extra functions
 function pi_star = pi_star_from_idx(idx,size_Ju, U)
