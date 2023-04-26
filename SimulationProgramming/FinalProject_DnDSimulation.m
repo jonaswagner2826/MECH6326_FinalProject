@@ -247,6 +247,37 @@ X_final.mn.hp = arrayfun(@(result) ...
 
 figure;
 hold on
+<<<<<<< HEAD
+% scatterhist(X_final.pc.hp, X_final.mn.hp);
+% h1 = histogram(X_final.pc.hp);
+% h2 = histogram(-X_final.mn.hp);
+% subplot(1,2,1)
+histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
+% set(gca,'XDir','reverse')
+% subplot(1,2,2)
+histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
+xlabel('Final HP State');
+ylabel('# of Simulations');
+legend('Monster Dies: PC HP', 'PC Dies: Monster HP');
+
+hold off
+figure;
+hold on
+names = {'PC and Monster Live','Monster Dies, PC Lives', 'Monster Lives, PC Dies'};
+x = [1:3];
+y = [sum(all([X_final.mn.hp>0;X_final.pc.hp>0])),
+    sum(all([X_final.mn.hp==0;X_final.pc.hp>0])),
+    sum(all([X_final.mn.hp>0;X_final.pc.hp==0]))];
+bar(x,y)
+set(gca,'XTick',1:length(names),'XTickLabel',names)
+ylabel('# of Simulations');
+
+% c = histogram(X_final.pc.hp);
+% d = histogram(-X_final.mn.hp);
+% % a = bar(M1,'hist');
+% % b = bar(-F1,'hist');
+% veiw(gca,-90,90)
+=======
 histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])), ...
     "DisplayName","PC Wins")
 histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])), ...
@@ -258,6 +289,7 @@ title("Monte-Carlo Simulation Results")
 xlabel("HP_{PC} - HP_{MN}","Interpreter","tex")
 ylabel("Number of Sims")
 legend
+>>>>>>> 05265b0cf3b476f02f07190fd63bbb0aeabe24c5
 
 saveas(gcf,"figs/DND_MonteCarlo_Hist.png")
 
