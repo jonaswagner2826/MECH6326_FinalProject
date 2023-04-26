@@ -10,7 +10,7 @@ function plot_DND_visualization(x, u)
     %   u.action = chosen action
     
 
-    maxHealth = 15;
+    maxHealth = 10;
 
     hold off
     ax = gca;
@@ -48,6 +48,14 @@ function plot_DND_visualization(x, u)
     mn.health = max(x.mn.hp/maxHealth,0);
     rectangle('Position', [mn.loc(1,2), mn.loc(2,2) 0.25, 2], 'FaceColor', 'k')
     rectangle('Position', [mn.loc(1,2), mn.loc(2,2) 0.25, 2*mn.health], 'FaceColor', 'g')
+
+    if pc.health == 0
+        pc.img = imread("pc_dead.png");
+    end
+
+    if mn.health == 0
+        mn.img = imread("dargon_dead.png");
+    end
     
 % %     hold on
     set(ax,'XLimMode','auto','XDir','normal')
