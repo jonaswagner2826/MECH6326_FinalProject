@@ -193,12 +193,16 @@ if runDNDvisualization
 figure
 results.U(length(results.X)) = results.U(length(results.X) - 1);
 animation_filename = ['figs/','DND_SingleSim_Animation','_rng_seed=',...
-    num2str(rng_seed),'.gif'];
+    num2str(rng_seed),'.mp4'];
+v = VideoWriter(animation_filename,'MPEG-4');
+v.FrameRate = 1;
+open(v);
 for k = 1:length(results.X)
     plot_DND_visualization(results.X(k), results.U(k))
     ylim([0,10]);
     xlim([-4,4]);
-    title("Round: ", num2str(k))
+    title("DND Simulation", ...
+        ['Seed =', num2str(rng_seed),' Round =', num2str(k)])
 
     if results.X(k).pc.hp <=0
         hold on
@@ -206,28 +210,29 @@ for k = 1:length(results.X)
         y = get(gca,'YLim');
         text(min(x),mean(y),'Game Over!',...
             'FontSize',25,'Color','red','BackgroundColor','yellow')
-        break
     elseif results.X(k).mn.hp <= 0
         hold on
         x = get(gca,'XLim');
         y = get(gca,'YLim');
         text(min(x),mean(y),'Game Won!', ...
             'FontSize',25,'Color','green','BackgroundColor','yellow')
-        break
     end
 
     drawnow
     frame = getframe(gcf);
-    im = frame2im(frame);
-    [imind,cm] = rgb2ind(im,256);
-    if k == 1
-        imwrite(imind,cm,animation_filename,'gif', 'Loopcount',inf);
-    else
-        imwrite(imind,cm,animation_filename,'gif','WriteMode','append');
-    end
+    writeVideo(v,frame);
+    % im = frame2im(frame);
+    % [imind,cm] = rgb2ind(im,256);
+    % if k == 1
+    %     imwrite(imind,cm,animation_filename,'gif', 'Loopcount',inf);
+    % else
+    %     imwrite(imind,cm,animation_filename,'gif','WriteMode','append');
+    % end
 
     % pause(0.5)
 end
+writeVideo(v,frame);
+close(v);
 end
 end
 
