@@ -5,8 +5,8 @@
 % Jonas Wagner: JRW200000
 
 
-recomputeP = true;
-recalculate_pi_star = true;
+recomputeP = false;
+recalculate_pi_star = false;
 runDNDvisualization = true;
 
 % Sim Settings
@@ -245,22 +245,8 @@ X_final.pc.hp = arrayfun(@(result) ...
 X_final.mn.hp = arrayfun(@(result) ...
     result.X(end).mn.hp, monte_carlo_results);
 
-figure;
-hold on
-<<<<<<< HEAD
-% scatterhist(X_final.pc.hp, X_final.mn.hp);
-% h1 = histogram(X_final.pc.hp);
-% h2 = histogram(-X_final.mn.hp);
-% subplot(1,2,1)
-histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
-% set(gca,'XDir','reverse')
-% subplot(1,2,2)
-histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
-xlabel('Final HP State');
-ylabel('# of Simulations');
-legend('Monster Dies: PC HP', 'PC Dies: Monster HP');
-
-hold off
+%% Visualize Monte Carlo
+% Win loss tie
 figure;
 hold on
 names = {'PC and Monster Live','Monster Dies, PC Lives', 'Monster Lives, PC Dies'};
@@ -271,25 +257,17 @@ y = [sum(all([X_final.mn.hp>0;X_final.pc.hp>0])),
 bar(x,y)
 set(gca,'XTick',1:length(names),'XTickLabel',names)
 ylabel('# of Simulations');
+saveas(gcf,"figs/DND_MonteCarlo_winlosstie.png")
 
-% c = histogram(X_final.pc.hp);
-% d = histogram(-X_final.mn.hp);
-% % a = bar(M1,'hist');
-% % b = bar(-F1,'hist');
-% veiw(gca,-90,90)
-=======
-histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])), ...
-    "DisplayName","PC Wins")
-histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])), ...
-    "DisplayName","Monster Wins")
-bar(X_final.pc.hp(all([X_final.mn.hp>0;X_final.pc.hp>0]))...
-    - X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp>0])), ...
-    "DisplayName","Neither Wins")
+% Monte-Carlo Results
+figure
+hold on
+histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
+histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
 title("Monte-Carlo Simulation Results")
-xlabel("HP_{PC} - HP_{MN}","Interpreter","tex")
-ylabel("Number of Sims")
-legend
->>>>>>> 05265b0cf3b476f02f07190fd63bbb0aeabe24c5
+xlabel('Final HP State')
+ylabel('# of Simulations')
+legend('Monster Dies: PC HP', 'PC Dies: Monster HP')
 
 saveas(gcf,"figs/DND_MonteCarlo_Hist.png")
 
