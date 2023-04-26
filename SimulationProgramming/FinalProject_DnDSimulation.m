@@ -269,7 +269,22 @@ histogram(X_final.pc.hp(all([X_final.pc.hp>0;X_final.mn.hp==0])))
 % set(gca,'XDir','reverse')
 % subplot(1,2,2)
 histogram(-X_final.mn.hp(all([X_final.mn.hp>0;X_final.pc.hp==0])))
-bar(sum(all([X_final.mn.hp>0;X_final.pc.hp>0])))
+xlabel('Final HP State');
+ylabel('# of Simulations');
+legend('Monster Dies: PC HP', 'PC Dies: Monster HP');
+
+hold off
+figure;
+hold on
+names = {'PC and Monster Live','Monster Dies, PC Lives', 'Monster Lives, PC Dies'};
+x = [1:3];
+y = [sum(all([X_final.mn.hp>0;X_final.pc.hp>0])),
+    sum(all([X_final.mn.hp==0;X_final.pc.hp>0])),
+    sum(all([X_final.mn.hp>0;X_final.pc.hp==0]))];
+bar(x,y)
+set(gca,'XTick',1:length(names),'XTickLabel',names)
+ylabel('# of Simulations');
+
 % c = histogram(X_final.pc.hp);
 % d = histogram(-X_final.mn.hp);
 % % a = bar(M1,'hist');
