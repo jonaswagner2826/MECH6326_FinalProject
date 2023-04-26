@@ -182,21 +182,22 @@ x_0.mn.hp = const.mn.hp.max; % initial hp
 x_0.pc.potion = 2;
 
 % Run Sim
+rng_seed = 2826;
 rng(rng_seed);
 results = DND_simulate_sys(x_0, pi_k, pi_star_0, const, pi_star);
 
-
-%% Single Result Plotting
+% Single Result Plotting
 if runDNDvisualization
 close all
 figure
 results.U(length(results.X)) = results.U(length(results.X) - 1);
+animation_filename = ['DND_SingleSim_Animation','_rng_seed=',...
+    num2str(rng_seed),'.gif'];
 for k = 1:length(results.X)
     plot_DND_visualization(results.X(k), results.U(k))
     ylim([0,10]);
     xlim([-4,4]);
     title("Round: ", num2str(k))
-    pause(0.5)
 
     if results.X(k).pc.hp <=0
         hold on
@@ -212,6 +213,16 @@ for k = 1:length(results.X)
         text(min(x),mean(y),'Game Won!', ...
             'FontSize',25,'Color','green','BackgroundColor','yellow')
         break
+    end
+
+    drawnow
+    frame = getframe(gcf);
+    im = frame2im(frame);
+    [imind,cm] = rgb2ind(im,256);
+    if k == 1
+        imwrite(imind,cm,animation_filename,'gif', 'Loopcount',inf);
+    else
+        imwrite(imind,cm,animation_filename,'gif','WriteMode','append');
     end
 
     pause(0.5)
