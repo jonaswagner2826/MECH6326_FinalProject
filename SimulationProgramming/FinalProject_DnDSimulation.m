@@ -5,42 +5,38 @@
 % Jonas Wagner: JRW200000
 
 
-recomputeP = false;
-recalculate_pi_star = false;
+recomputeP = true;
+recalculate_pi_star = true;
 runDNDvisualization = true;
 
 % Sim Settings
-const.finiteHorrizon = 25;
+const.finiteHorrizon = 50;
 const.battlefieldsize = 15;
-rng_seed = 420;
+const.relPosMax = 5;
 
 
 %% System Parameters
+% PC Stats
+const.pc.hp.max = 15;
+const.pc.ac = 15;
+const.pc.strength = 5;
+const.pc.dext = 5;
+% const.pc.speed = 1;
+% Melee
 const.pc.melee.range = 2;
 const.pc.melee.weapon = 0;
 const.pc.melee.d = 4;
+% Ranged
 const.pc.ranged.range = 5;
 const.pc.ranged.weapon = 0;
 const.pc.ranged.d = 6;
-const.pc.speed = 1;
-const.pc.ac = 12;%15;
-const.pc.strength = 5;
-const.pc.dext = 5;
-const.pc.hp.max = 10;
-const.mn = const.pc; % same stats
-
-% For testing... (or final?)
-% const.mn.hp.max = 10;
-% const.mn.ac = 10;
-% const.mn.melee.weapon = 3;
-% const.mn.ranged.weapon = 0;
-
+% Heal
 const.pc.heal.baseheal = 1;
 const.pc.heal.d = 4;
 
-% Pi_star Setup
-const.relPosMax = 5;
-const.finiteHorrizon = 15;
+% Monster Stats
+const.mn = const.pc; % Monster same stats
+const.mn.heal = []; % Can't heal
 
 %% Markov Chain Definitions
 % Move 
@@ -49,11 +45,11 @@ const.move.N = @(x) x + [0;1];
 const.move.E = @(x) x + [1;0];
 const.move.S = @(x) x + [0;-1];
 const.move.W = @(x) x + [-1;0];
-% diagonal movement...
-% const.move.NE = @(x) x + [1;1];
-% const.move.NW = @(x) x + [-1;1];
-% const.move.SE = @(x) x + [1;1];
-% const.move.SW = @(x) x + [1;-1];
+% Diagonal movement
+const.move.NE = @(x) x + [1;1];
+const.move.NW = @(x) x + [-1;1];
+const.move.SE = @(x) x + [1;1];
+const.move.SW = @(x) x + [1;-1];
 
 % Action
 const.action.melee = 1;
@@ -61,22 +57,18 @@ const.action.ranged = 2;
 const.action.heal = 3;
 const.action.nothing = 4;
 
-% Dice (not really used)
-% D.d2 = (1/2)*ones(2,1);
+% Dice
 D.d4 = (1/4)*ones(4,1);
 D.d6 = (1/6)*ones(6,1);
 D.d8 = (1/8)*ones(8,1);
-% D.d10 = (1/10)*ones(10,1);
 D.d20 = (1/20)*ones(20,1);
-% D.d100 = (1/100)*ones(100,1);
-D.diceRoll = [4; 6; 8; 20];
-D.diceRoll = [D.diceRoll; D.diceRoll];
 
 % Actions
 hp_max = max(const.pc.hp.max, const.mn.hp.max);
 hp_states = 0:hp_max;
 num_hp_states = length(hp_states);
 
+% Relative Markov Chains
 M = DND_construct_relative_markov(num_hp_states, const);
 
 
@@ -101,37 +93,24 @@ elseif ~exist("P",'var')
     load("data/P_update.mat","P")
 end
 
-
-
-%% Finite Time Horrizon
+%% Finite Time Horrizon Calculation
 
 % Stage Cost
-g_k = @(pc_hp, mn_hp) -pc_hp;%-3*(pc_hp - mn_hp);% - 2*pc_hp;
-% g_k = @(pc_hp, mn_hp) - 2*pc_hp;
+g_k = @(pc_hp, mn_hp) -pc_hp;
 G_k = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X.values{3}, X.values{4});
 G_k(:,:,1,:) = 1; % Don't want to die...
 G_k(:,:,:,1) = -1; % Want monster to die...
-% G_k([1 end],:,:,:) = hp_max; % Don't run away
-% G_k(:,[1 end],:,:) = hp_max; % Don't run away
-
-
 
 
 if recalculate_pi_star
 % Initialize optimal costs, policies
-% J = zeros(length(X.pos.x),length(X.pos.y),...
-%     length(X.pc.hp),length(X.mn.hp),length(X.pc.potion));
-% J_new = ones(size(J));
-% J_new = 10*G_k; % last step important
 J_new = G_k;
 
 N = const.finiteHorrizon; % Future Timesteps
-% clear pi_star; clear J; % for finite version
 
 tic
 for k = N:-1:0
     k, toc, tic
-    % J{k+1} = J_new;
     if k < N; pi_star{k+1} = pi_star_new; end
 
     % Cost function for each input
@@ -140,10 +119,7 @@ for k = N:-1:0
 
     J_future = arrayfun(@(P) P{:}'*reshape(J_new,[],1),...
         P{idx_move,idx_action});
-    Ju(:,:,:,:,:,idx_move,idx_action) = G_k + J_future; 
-
-        % idx_move, idx_action
-        
+    Ju(:,:,:,:,:,idx_move,idx_action) = G_k + J_future;
         end
     end
 
@@ -175,15 +151,12 @@ pi_k = @(x,pi_star) pi_star(...
 % Intitial State
 [x_0.pc.x, x_0.pc.y] = deal(1, 5); % x_pc_x and x_pc_y
 [x_0.mn.x, x_0.mn.y] = deal(-2, 5); % x_mn_x and x_mn_y
-% x_0.pos.x = x_0.pc.x - x_0.mn.x; % relative x position
-% x_0.pos.y = x_0.pc.y - x_0.mn.y; % relative y position
 x_0.pc.hp = const.pc.hp.max; % initial hp
 x_0.mn.hp = const.mn.hp.max; % initial hp
 x_0.pc.potion = 2;
 
 % Run Sim
 for rng_seed = [69, 420, 171, 2826, 1997]
-% rng_seed = 2826;
 rng(rng_seed);
 results = DND_simulate_sys(x_0, pi_k, pi_star_0, const, pi_star);
 
@@ -193,8 +166,8 @@ if runDNDvisualization
 figure
 results.U(length(results.X)) = results.U(length(results.X) - 1);
 animation_filename = ['figs/','DND_SingleSim_Animation','_rng_seed=',...
-    num2str(rng_seed),'.mp4'];
-v = VideoWriter(animation_filename,'MPEG-4');
+    num2str(rng_seed)];
+v = VideoWriter([animation_filename,'.mp4'],'MPEG-4');
 v.FrameRate = 1;
 open(v);
 for k = 1:length(results.X)
@@ -221,15 +194,14 @@ for k = 1:length(results.X)
     drawnow
     frame = getframe(gcf);
     writeVideo(v,frame);
-    % im = frame2im(frame);
-    % [imind,cm] = rgb2ind(im,256);
-    % if k == 1
-    %     imwrite(imind,cm,animation_filename,'gif', 'Loopcount',inf);
-    % else
-    %     imwrite(imind,cm,animation_filename,'gif','WriteMode','append');
-    % end
 
-    % pause(0.5)
+    im = frame2im(frame);
+    [imind,cm] = rgb2ind(im,256);
+    if k == 1
+        imwrite(imind,cm,[animation_filename,'.gif'],'gif', 'Loopcount',inf);
+    else
+        imwrite(imind,cm,[animation_filename,'.gif'],'gif','WriteMode','append');
+    end
 end
 writeVideo(v,frame);
 close(v);
@@ -248,8 +220,6 @@ x_0.pc.hp = const.pc.hp.max; % initial hp
 x_0.mn.hp = const.mn.hp.max; % initial hp
 x_0.pc.potion = 2;
 
-
-
 % Initialize arrays (will be overwritten)
 monte_carlo_results(num_sims) = results;
 monte_carlo_final(num_sims) = results(end).X(end);
@@ -264,14 +234,12 @@ for i = 1:num_sims
     X_0(i).mn.x = X_0(i).pc.x + datasample(X.pos.x,1);
     X_0(i).pc.y = datasample(-const.battlefieldsize:const.battlefieldsize,1);
     X_0(i).mn.y = X_0(i).pc.y + datasample(X.pos.y,1);
-
-    
     
     monte_carlo_results(i) = DND_simulate_sys(...
         X_0(i), pi_k, pi_star_0, const, pi_star);
 end
 
-%% hp_results = 
+% Monte Carlo Results 
 X_final.pc.hp = arrayfun(@(result) ...
     result.X(end).pc.hp, monte_carlo_results);
 X_final.mn.hp = arrayfun(@(result) ...
