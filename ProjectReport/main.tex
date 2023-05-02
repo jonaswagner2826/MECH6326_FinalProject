@@ -20,7 +20,7 @@
 \usepackage{xcolor}
 \usepackage[draft]{hyperref}
 \renewcommand{\figureautorefname}{Fig.}
-\usepackage[inline, shortlabels]{enumitem}
+
 \usepackage{cite}
 
 
@@ -43,7 +43,7 @@
 % Title and Author Info
 \title{
     \LARGE \bf
-    Title Here
+    Optimal Combat Scenario for Dungeons \& Dragons
 }
 
 \author{
@@ -65,7 +65,20 @@
 % -----------------------------------------------------
 \maketitle
 \begin{abstract}
-    Abstract here
+
+    This article examines the multi-step decision-making process involved in combat encounters in Dungeons and Dragons 5th edition. 
+    In D\&D combat, players fight creatures controlled by the Dungeon Master. 
+    The goal is to maximize the hit points of player characters while minimizing those of the enemies. 
+    The system includes the set of PCs and enemies, and the states of the system include the HP values of PCs and enemies, the condition of the PC and enemy, and spell slots remaining.
+
+    Inputs include the actions the enemy performs and the state of the creature, while outputs include the actions the PCs perform on the enemy creature. 
+    he uncertainties in this system come from the dice rolls the players make when performing an action and not knowing the specific stats of the enemy they face. 
+    Combat is based on initiative order, and each round is a full completion of the initiative list.
+
+    This system uses a Markov Decision Process to create the dynamic program. Its results will then be compared to scenarios played with human input. 
+    This dynamic programming algorithm has been shown to be up to 70\% effective in winning these combat scenarios.
+
+
 \end{abstract}
 
 
@@ -137,8 +150,8 @@
 % -----------------------------------------------------
 % References
 % -----------------------------------------------------
-\bibliography{refs}{}
-\bibliographystyle{IEEEtran}
+% \bibliography{refs}{}
+% \bibliographystyle{IEEEtran}
 
 
 
