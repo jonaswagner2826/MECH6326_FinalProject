@@ -214,7 +214,6 @@ end
 end
 
 %% Monte Carlo
-
 num_sims = 1000;
 
 % Initial conditions

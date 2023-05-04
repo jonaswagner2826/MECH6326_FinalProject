@@ -156,7 +156,9 @@ For movement, a deterministic input of
     =\{(0,0),(-1,0), (+1,0), (0,-1),(0,+1), (-1,-1), (-1,+1), (+1,-1),(+1,+1)\}
 \end{multline}
 
-For actions, all the actions (except nothing) each are stochastic and can be represented as Markov chains or as a combination of input and noise term, $u_{pc,a}, u_{mn,a} \in \mathcal{U}_{a} = \{\text{Melee, Ranged, Heal, Nothing}\}$.
+For actions, the puts for the PC and monster are respectively \[
+    u_{pc,a}, u_{mn,a} \in \mathcal{U}_{a} = \{\text{Melee, Ranged, Heal, Nothing}\}
+\] where each of the actions (except nothing) are stochastic and can either be represented as a function of input and noise terms or as markov chains.
 
 For Melee and Ranged attacks, the character acts upon another character's HP where the impact on HP is as follows:
 \begin{enumerate}
@@ -165,30 +167,42 @@ For Melee and Ranged attacks, the character acts upon another character's HP whe
     \item ``Roll'' for effectiveness - opponent HP decreased by Weapon/self Modifiers (2) + d6/d8
 \end{enumerate}
 
-The PC is allowed to use a health potion which has a stochastic effect upon the player's health:
+The PC is also allowed to use a health potion which has a stochastic effect upon the player's health:
 \begin{enumerate}
     \item Ensure potion is available - otherwise can't heal
     \item ``Roll'' for effectiveness - player's HP increased by health modifier (1) + d4
 \end{enumerate}
 
-\subsubsection{Noise}
-When written in some forms the stochastic aspects of the system can be described as a noise signal.
-This can be modeled as either a single HP update amount with dependent distribution on action or as a non-addative noise signal where the update is dependent as described. 
+\subsubsection{Stochastic Elements}
+When written in some forms the stochastic aspects of the system can be described as a noise signal consisting of the PC and monster dice rolls.
+The actions themselves can be modeled as either a function of is noise signal or as a derived markov chain acting directly upon the PC or Monster HP states.
 
-For a complete picture, let the action noise be described as \[
-    w_{pc,a}, w_{mn,a} \in \mathcal{W}_{a} \subseteq \{\text{``success''} = 1, \text{``failure''} = 0\} \cross \Z_{+}
-\] where the distributions of each are dependent on the input action $u_{pc,a}, u_{mn,a}$ and associated attack modifiers.
-
-Alternativly for the simplistic case this can be done separately, where $\{\text{``success'', ``failure''}\}$ is dependent on the PC and monster's stats as well as their respective dice rolls, thus \[
-    w_{pc,sf}, w_{mn,sf} \in \mathcal{W}_{sf} \subseteq \{0, 1\}
-\] and where $w_{pc,sf}$ and $w_{mn,sf}$ are directly calculated from PC and monster modifiers and a d20 role.
-The damage or heal amount is then also stochastic dependent on player stats and also dependent on modifiers and a dice roll (d4/d6/d8).
-
-The dice roll noise is defined for dice \{d2, d4, d6, d8, d10, d20, d100\} as 
+The noise introduced by dice rolls are defined as for \{d2, d4, d6, d8, d10, d20, d100\} as 
 \[
     w_{pc,dn}, w_{mn,dn} \in \mathcal{W}_{dn} = \{1,2,\dots,n\}
-\] with $n = 2,4,6,8,10,20,100$ respectively and each outcome is equally likely.
-The PDF {\color{red} PMF?} can be seen in shorthand with $P(w_{i,dn} = \smqty[1 & \cdots & n]^T) = \frac{1}{n}\smqty[1 & \cdots & 1]^T$
+\] with $n = 2,4,6,8,10,20,100$ respectively where each outcome is equally likely.
+The PDF {\color{red} PMF?} can be seen in shorthand with $P(w_{i,dn} = \smqty[1 & \cdots & n]^T) = \frac{1}{n}\smqty[1 & \cdots & 1]^T$.
+
+
+Additionally, for the simplistic case, the success/failure and damage/heal amount can be determined independently.
+For the attack actions, success/failure is therefore dependent on the PC and monster's stats and a d20 roll, thus \[
+        w_{pc,sf}, w_{mn,sf} \in \mathcal{W}_{sf} \subseteq \{\text{``failure''} = 0, \text{``success''}=1\}
+\] and where $w_{pc,sf}$ and $w_{mn,sf}$ are directly calculated from PC and monster modifiers and their respective d20 rolls.
+
+% For a complete picture, let the action noise be described as \[
+%     w_{pc,a}, w_{mn,a} \in \mathcal{W}_{a} \subseteq \{\text{``success''} = 1, \text{``failure''} = 0\} \cross \Z_{+}
+% \] where the distributions of each are dependent on the input action $u_{pc,a}, u_{mn,a}$ and associated attack modifiers.
+
+% Alternatively, for the simplistic case this can be done separately, where $\{\text{``success'', ``failure''}\}$ is dependent on the PC and monster's stats as well as their respective dice rolls, thus \[
+%     w_{pc,sf}, w_{mn,sf} \in \mathcal{W}_{sf} \subseteq \{0, 1\}
+% \] and where $w_{pc,sf}$ and $w_{mn,sf}$ are directly calculated from PC and monster modifiers and a d20 role.
+% The damage or heal amount is then also stochastic dependent on player stats and also dependent on modifiers and a dice roll (d4/d6/d8).
+
+% The dice roll noise is defined for dice \{d2, d4, d6, d8, d10, d20, d100\} as 
+% \[
+%     w_{pc,dn}, w_{mn,dn} \in \mathcal{W}_{dn} = \{1,2,\dots,n\}
+% \] with $n = 2,4,6,8,10,20,100$ respectively and each outcome is equally likely.
+% The PDF {\color{red} PMF?} can be seen in shorthand with $P(w_{i,dn} = \smqty[1 & \cdots & n]^T) = \frac{1}{n}\smqty[1 & \cdots & 1]^T$
 
 \subsection{Problem Statement}
 For the simplistic case, let states at time-step $k$, be \[
@@ -199,17 +213,18 @@ For the simplistic case, let states at time-step $k$, be \[
 
 Let the inputs to the system be only the players inputs \[
     u_k = \mqty[u_{pc,m}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
-\] The monster's inputs to the system will be incorporated as a deterministic input that and stochastic input that are closed-loop within the system and treated as part of the nonlinear aspects of the update function/Markov chains.
+\] The monster's inputs to the system will be incorporated as a deterministic input that and stochastic input that are closed-loop within the system and treated as part of the nonlinear aspects of the update function.
 
-Let the stochastic input signal $w_k$ for each time-step be defined as a collection of all the dice rolls \[
+Let the noise signal $w_k$ for each time-step be defined as a collection of the PC and Monster dice rolls, \[
     w_k = \mqty[w_{pc} \\ w_{mn}], \quad w_{i} = \mqty[w_{i,4} \\ w_{i,6} \\ w_{i,8} \\ w_{i,20}] \forall_{i = pc,mn}
     % \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
-\] and the associated success/fail noise $\forall_{i=pc,mn}$ be derived as \[
+\], and the associated success/fail noise $\forall_{i=pc,mn} \forall_{j=mn,pc} \forall_{l = dex,str}$ are derived as \[
     w_{i,sf} = \begin{cases}
-        0 & ({\color{red} 5} + w_{i,d20} \leq {\color{red} 15} \text{ OR } w_{i,d20} = 1) \text{ AND } w_{i,d20} \neq 1\\
-        1 & ({\color{red} 5} + w_{i,d20} > {\color{red} 15} \text{ OR } w_{i,d20} = 20) \text{ AND } w_{i,d20} \neq 1\\
+        0 & (a_{i,l} + w_{i,d20} \leq a_{j,ac} \text{ OR } w_{i,d20} = 1) \text{ AND } w_{i,d20} \neq 1\\
+        1 & (a_{i,l} + w_{i,d20} > a_{j,ac} \text{ OR } w_{i,d20} = 20) \text{ AND } w_{i,d20} \neq 1\\
     \end{cases}
-\] \todo{define modifiers as a constant...}
+\] where the modifiers are held constant as $a_{i,l} = a_{i,dex} = a_{i,str} = 5$ and $a_{j,ac} = 15$.
+
 This results in probabilities of 
 $P(w_{i,sf} = 0) = (P(w_{i,d20} = 1) + P({\color{red} 5} + w_{i,d20} < {\color{red} 15})) - (P(w_{i,d20} = 20)) = 1/20 + 9/20 - 1/20 = 9/20$ 
 and 
@@ -222,47 +237,49 @@ The evolution of the very simple system can be described as Markov chains or by 
     % = \mqty[f_{pc,m}(x_k,u_k)\\f_{mn,m}(x_k)\\ f_{pc,a}()]
     = \mqty[
         x_{pc,p} + f_{pc,m}(u_k)\\
-        % f_{pc,m}(x_k, u_k)\\
         x_{mn,p} + f_{mn,m}(x_k)\\
-        % f_{mn,m}(x_k)\\
         \mqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
-        % f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
-        % f_{pc,a}(x_k,u_k,w_k)\\
-        % f_{mn,a}(x_k,u_k,w_k)
     ]
 \] where the associated functions update states as follows: 
 \begin{itemize}
     \item The players deterministic movement input: $f_{pc,m}(u_k) = u_{pc,m}$
     \item The monsters state-dependent movement:\[
         f_{mn,m}(x_k) = \operatorname{direction}(x_{pc,p} - x_{mn,p})
-    \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player. (In matlab we do: \verb!round(k_mn_speed * normalize(x_pc_p-x_mn_p))!)
-    % $f_{mn,m}(x_k) = (1,1)$ 
+    \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player. 
+    (In matlab: \verb!round(k_mn_speed * normalize(x_pc_p-x_mn_p))!)
     \item The players action:\[
         f_{pc,a} = \begin{cases}
-            % \mqty[x_{pc,hp} \\ x_{mn,hp}-w_{pc,sf}(2 + w_{pc,d6})] & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}} \leq \text{Melee Range}\\
-            % \mqty[x_{pc,hp} \\ x_{mn,hp}-w_{pc,sf}(2 + w_{pc,d8})] & u_{pc,a} = \text{Ranged} \text{ AND } \norm{x_{pc,p} - x_{mn,p}} \leq \text{Ranged Range}\\
-            % \mqty[x_{pc,hp} + 1 + w_{pc,d4} \\ x_{mn,hp}] & u_{pc,a} = \text{Heal} \text{ AND } \text{Have Potion}\\
-            % \mqty[x_{pc,hp} \\ x_{mn,hp}] & u_{pc,a} = \text{Nothing} \text{ OR } \text{Otherwise}
-            \mqty[0 & -w_{pc,sf}({\color{red}0} + w_{pc,d6}) & 0]^T & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
-            \mqty[0 & -w_{pc,sf}({\color{red}0} + w_{pc,d8}) & 0]^T & u_{pc,a} = \text{Ranged} \text{ AND } \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
-            \mqty[{\color{red}1} + w_{pc,d4} & 0 & -1]^T & u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1\\%\text{Have Potion}\\
+            \mqty[0 & -w_{pc,sf}(a_{pc,wpn,m} + w_{pc,d6}) & 0]^T & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,m}\\
+            \mqty[0 & -w_{pc,sf}(a_{pc,wpn,r} + w_{pc,d8}) & 0]^T & u_{pc,a} = \text{Ranged} \text{ AND } a_{pc,rng,m} < \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,r}\\
+            \mqty[a_{pc,potion} + w_{pc,d4} & 0 & -1]^T & u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1\\%\text{Have Potion}\\
             \mqty[0 & 0 & 0] & u_{pc,a} = \text{Nothing} \text{ OR } \text{Otherwise}
         \end{cases}
     \]
     \item The monsters state dependent action: \[
         f_{mn,a} = \begin{cases}
-            \mqty[-w_{mn,sf}({\color{red}0} + w_{mn,d6}) & 0 & 0]^T & \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Melee Range}\\
-            \mqty[- w_{mn,sf}({\color{red}0} + w_{mn,d8}) & 0 & 0]^T & \text{Melee Range} < \norm{x_{pc,p} - x_{mn,p}}_1 \leq \text{Ranged Range}\\
-            \mqty[0 & 0 & 0]^T & \text{Ranged Range} < \norm{x_{pc,p} - x_{mn,p}}_1
-            % [0, 1 + w_{mn,d4}] & u_{mn,a} = \text{Heal} \land \text{Have Potion} \todo{extra state?}\\
-            % [0, 0] & u_{mn,a} = \text{Nothing} \lor \text{Otherwise}
+            \mqty[-w_{mn,sf}(a_{mn,wpn,m} + w_{mn,d6}) & 0 & 0]^T & \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{mn,rng,m}\\
+            \mqty[- w_{mn,sf}(a_{mn,wpn,r} + w_{mn,d8}) & 0 & 0]^T & a_{mn,rng,m} < \norm{x_{pc,p} - x_{mn,p}}_2 \leq  a_{mn,rng,r}\\
+            \mqty[0 & 0 & 0]^T &  a_{mn,rng,r} < \norm{x_{pc,p} - x_{mn,p}}_1
         \end{cases}
     \]
 \end{itemize}
+where weapons/potion modifiers are taken as $a_{pc,wpn,m} = a_{mn,wpn,m} = 0$, $a_{pc,wpn,r} = a_{mn,wpn,r} = 0$, and $a_{pc,potion} = 1$
+and ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,rng,r} = 5$
 
-The objective function and such is yet to be fully defined, but will consist of minimizing the monsters HP and maintaining the PC HP while also finding a way to minimize the time it takes to kill the monster.
+The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivising monster death and strongly disincentivising PC death.
+
+
+
 
 \subsection{Markov Implementation}
+
+{\color{red} 
+TODO: 
+Simplify the Markov implementation section.
+It may be easier to incorporate the relative P definitions alongside the stochastic function equivalent and then have only the absolute markov definitions in the MATLAB implementation.
+}
+
+
 For each of the stochastic functions defined in the update functions from the problem definition a markov chain can be described to better represent the changes between different states.
 Considering that only the actions are stochastic, the chains can be restricted to only the PC and Monster hp where the action input decides which of the chains are selected.
 
