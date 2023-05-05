@@ -18,7 +18,6 @@ const.finiteHorrizon = 50;
 const.battlefieldsize = 15;
 const.relPosMax = 5;
 
-
 %% System Parameters
 % PC Stats
 const.pc.hp.max = 15;
@@ -107,7 +106,11 @@ G_k(:,:,:,1) = -1; % Want monster to die...
 
 if visualize_G_k
     figure;
-    imagesc(reshape(G_k(1,1,:,:,1),size(G_k,3),[]))
+    [X1,X2] = meshgrid(X.pc.hp,X.mn.hp);
+    G_k_vis = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X1,X2');
+    G_k_vis(1,:) = 1;
+    G_k_vis(:,1) = -1;
+    imagesc(G_k_vis)
     set(gca, 'YDir', 'normal')
     xlabel('PC HP')
     ylabel('MN HP')
