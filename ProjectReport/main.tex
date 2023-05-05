@@ -261,16 +261,66 @@ The PDF can be seen in shorthand with $P(w_{i,dn} = \smqty[1 & \cdots & n]^T) = 
 % Results
 % -----------------------------------------------------
 \section{Results}
+This process was repeated 1000 times in a Monte Carlo simulation in order to fully realize the results of the 
+dynamic program. A visualizer was created to show the change of the PC and monster's states over the course of the 
+combat. Fig. 1 below shows an example of the visualizer animation sequence.
+
+\pagebreak
+
+\begin{figure}[h]
+\centering
+\includegraphics[scale = 0.2]{figs/DND_SingleSim_Animation_rng_seed=1997.png}
+\caption{A combat scenario in which the PC defeats the monster in 4 time steps}
+\end{figure}
+
+The Monte Carlo simulation results differed depending on what computer processor was used to calculate the Markov decision 
+process. Using an Intel i7-8750H (8th gen) processor, the win-rate of the PC was about 40\%, as shown in Fig. 2. Using an AMD 
+Ryzen 9 3950X, the win-rate of the PC was closer to 70\%, as shown in Fig. 3. This might be due to how the processors differ in their methods of calculating
+random variables, as these simulations were performed using the exact same code and random number seed.
+
+\begin{figure}[thb]
+    \centering
+    \includegraphics[scale = 0.5]{figs/DND_monte_carlo_hist.png}
+    \caption{Monte Carlo simulation performed on an Intel processor.}
+\end{figure}
+
+Figures 2 and 3 depict scenarios where one of the actors dies. In some instances, both the PC and monster survive and the simulation concludes 
+without a decisive outcome. This outcome could be attributed to the random positioning of the actors on the battlefield, wherein they may be too 
+distant from each other, causing them to spend time running towards or away from each other instead of attacking. Alternatively, it could result 
+from a sequence of unfavorable dice rolls, resulting in both parties failing to land successful hits.
 
 
 
+\begin{figure}[thb]
+    \centering
+    \includegraphics[width=\columnwidth]{figs/DND_MChist_AMD.png}
+    \caption{Monte Carlo simulation performed on an AMD processor.}
+\end{figure}
+
+The Monte Carlo simulation results were compared to human decisions in the context of D\&D gameplay, acknowledging that the optimal choice is 
+not always made by human players. In the human simulation, the PCs' actions were manually inputted while playing against the monster, and the 
+findings are presented in Fig. 4. The results indicate that the human performance was superior to that of the Intel processor, 
+achieving a 60\% win-rate. However, it fell short of the performance of the AMD processor.
+
+\begin{figure}[thb]
+    \centering
+    \includegraphics[scale = 0.5]{figs/DND_player_jonas_hist.png}
+    \caption{Human combat results over 5 simulations.}
+\end{figure}
+
+
+Fig. 5 displays the stage costs of the dynamic program, with the left and bottom red bars signifying the termination of the simulation 
+when the PC or monster reaches 0 HP, respectively. The objective is to maximize the PC's health while minimizing the monster's, resulting in a 
+significant cost when the monster's HP is at its maximum. The program is structured to minimize negative values, effectively maximizing the highest
+cost when the PC is at full health.
 
 
 
-
-
-
-
+\begin{figure}[thb]
+    \centering
+    \includegraphics[scale =0.44]{figs/DND_StageCost_G_k.png}
+    \caption{Stage Cost of $G_k$.}
+\end{figure}
 
 
 
