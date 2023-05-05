@@ -309,12 +309,13 @@ Ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,r
 \subsection{Markov Chain Realization}
 Equivalent Markov chains can be defined for each of the steps of a turn instead of the nonlinear mixed deterministic and stochastic functions. 
 
-The relative and deterministic nature of makes those updates much easier to be done using the update function; however, the stochastic nature of actions lend well towards a markov implementation.
+The relative and deterministic nature of these makes updating the system with the update function much easier;
+ however, the stochastic nature of actions lends themselves to a Markov implementation.
 \subsubsection{Additional Assumptions}
 A few additional assumptions must be made to restrict the problem to a markov chain implementation:
 \begin{itemize}
-    \item The monster and pc hp will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
-    \item The ensuring of a potion will be a restriction upon the pc input/result in a nothing action if no potion is available.
+    \item The monster and PC HP will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
+    \item The potion action is limited to the number of potions in the PC inventory. If no potion exists, the PC does nothing instead.
     \item The update of $x_{pc,hp}$ and $x_{mn,hp}$ in closed-loop will be assumed to be independent of each other.
 \end{itemize}
 
@@ -324,9 +325,9 @@ Transition matrices are derived directly from each of the cases in the nonlinear
 The transition matrices will be defined as $[p_{i,j}] = P(x_{k+1} = i, x_{k} = j)$.
 This can be thought of as each column being the probabilistic function results for $f(x_k,w_k), x_{k} = j, w_k = P[w_k]$.
 
-The resultant markov chains (stored as the struct M in \autoref{apx:matlab}) are denoted by $P_{i,j} \forall_{i\in\{pc,mn\}} \forall_{j\in \mathcal{U}_a}$.
+The resultant Markov chains (stored as the struct M in \autoref{apx:matlab}) are denoted by $P_{i,j} \forall_{i\in\{pc,mn\}} \forall_{j\in \mathcal{U}_a}$.
 \subsubsection{Closed-loop Markov Chain}
-The actual markov chains associated with closed-loop will be selected directly based on state and player input by selecting the appropriate markov chains.
+The actual Markov chains associated with closed-loop will be selected directly based on state and player input by selecting the appropriate markov chains.
 
 Since the assumption that $u_k$ will be limited to those feasible by the PC, the following described as follows:
 
@@ -345,7 +346,7 @@ Since the assumption that $u_k$ will be limited to those feasible by the PC, the
 % Dynamic Programming Implementation
 % -----------------------------------------------------
 \section{Dynamic Programming Implementation}
-A MDP implimentation of the dynamic programming algorithm is used to determine the optimal policy which can then be tested against the nonlinear update equation version for simulation.
+A Markov Decision Process (MDP) implimentation of the dynamic programming algorithm is used to determine the optimal policy which can then be tested against the nonlinear update equation version for simulation.
 
 \subsection{MDP Implimentation}
 \subsubsection{Additional Simplifications}
@@ -362,8 +363,8 @@ Due to the nature of the problem being of such high dimension, the following add
 
 \subsubsection{Layered Markov Chain}
 The MDP will be applied upon a finite 5D space $\mathcal{X} = \mathcal{X}_{pos,x} \cross \mathcal{X}_{pos,y} \cross \mathcal{X}_{pc,hp} \cross \mathcal{X}_{mn,hp} \cross \mathcal{X}_{pc,potion}$ where the probability of being each location is stored within an array.
-For each of the potential inputs, a markov chain is then derived upon this 5D space using the transition matrices from \autoref{sec:transition_matrices}.
-Within MALTAB this is computed ahead of time (and stored in P.mat) and then flattened for matrix multiplication for computational efficiency.
+For each of the potential inputs, a Markov chain is then created in this 5D space using the transition matrices from \autoref{sec:transition_matrices}.
+Within MATLAB this is computed ahead of time (and stored in P.mat) and then flattened for matrix multiplication for computational efficiency.
 
 \subsection{Optimal Policy}
 \subsubsection{Objective Function}
