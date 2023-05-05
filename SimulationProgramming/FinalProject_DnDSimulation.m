@@ -7,8 +7,11 @@
 
 recomputeP = false;
 recalculate_pi_star = false;
+visualize_G_k = true;
 runDNDvisualization = false;
-player_comparrision = true;
+runMonteCarlo = false;
+plotHPComp = false;
+player_comparrision = false;
 
 % Sim Settings
 const.finiteHorrizon = 50;
@@ -102,6 +105,20 @@ G_k = arrayfun(@(pc_hp, mn_hp) g_k(pc_hp, mn_hp), X.values{3}, X.values{4});
 G_k(:,:,1,:) = 1; % Don't want to die...
 G_k(:,:,:,1) = -1; % Want monster to die...
 
+if visualize_G_k
+    figure;
+    imagesc(reshape(G_k(1,1,:,:,1),size(G_k,3),[]))
+    set(gca, 'YDir', 'normal')
+    xlabel('PC HP')
+    ylabel('MN HP')
+    colormap('jet');
+    colorbar;
+    title('Stage Cost Function G_k')
+
+    saveas(gcf, [fileparts((mfilename('fullpath'))),'\figs\',...
+        'DND_StageCost_G_k','.png'])
+end
+
 
 if recalculate_pi_star
 % Initialize optimal costs, policies
@@ -164,23 +181,34 @@ x_0.pc.potion = 2;
 for rng_seed = [69, 420, 171, 2826, 1997]
 rng(rng_seed);
 results = DND_simulate_sys(x_0, pi_k, pi_star_0, const, pi_star);
-
+clear im frames ax
 % Single Result Plotting
 if runDNDvisualization
 % close all
+figSave = figure;
 figure
 results.U(length(results.X)) = results.U(length(results.X) - 1);
-animation_filename = ['figs/','DND_SingleSim_Animation','_rng_seed=',...
+animation_filename = ['DND_SingleSim_Animation','_rng_seed=',...
     num2str(rng_seed)];
-v = VideoWriter([animation_filename,'.mp4'],'MPEG-4');
+animation_filename = [fileparts((mfilename('fullpath'))),'\figs\',...
+    animation_filename];
+% if isfile(animation_filename); continue; end
+v = VideoWriter([animation_filename, '.mp4'], 'MPEG-4');
 v.FrameRate = 1;
 open(v);
 for k = 1:length(results.X)
+    hold off
     plot_DND_visualization(results.X(k), results.U(k))
     ylim([0,10]);
     xlim([-4,4]);
     title("DND Simulation", ...
         ['Seed =', num2str(rng_seed),' Round =', num2str(k)])
+
+    % save axis to cell array
+    ax{k} = copyobj(gca,figSave);
+    set(ax{k}, "Title", gca().Subtitle, ...
+        "XLim", gca().XLim, ...
+        "YLim", gca().YLim);
 
     if results.X(k).pc.hp <=0
         hold on
@@ -197,23 +225,72 @@ for k = 1:length(results.X)
     end
 
     drawnow
-    frame = getframe(gcf);
-    writeVideo(v,frame);
+    frames{k} = getframe(gcf);
+    writeVideo(v,frames{k});
 
-    im = frame2im(frame);
-    [imind,cm] = rgb2ind(im,256);
+    im(:,:,:,k) = frame2im(frames{k});
+    [imind,cm] = rgb2ind(im(:,:,:,k),256);
     if k == 1
         imwrite(imind,cm,[animation_filename,'.gif'],'gif', 'Loopcount',inf);
     else
-        imwrite(imind,cm,[animation_filename,'.gif'],'gif','WriteMode','append');
+        imwrite(imind,cm,[animation_filename, '.gif'],'gif','WriteMode','append');
     end
 end
-writeVideo(v,frame);
+% save frame to the video
+writeVideo(v,frames{k});
 close(v);
+
+
+
+
+% Ploting all frames of animation 
+% nFrames = length(ax); figHeight = 500; figWidth = nFrames * figHeight;
+% % for square version:
+% figWidth = figHeight*sqrt(nFrames); figHeight = figWidth;
+% fig = figure('Position', [0 0 figWidth figHeight]);
+% fig = figure;
+fig = figure('Position', [0 0 1000 1000]);
+t = tiledlayout("flow");
+t.Padding = "compact";
+t.TileSpacing = "compact";
+for k = 1:length(ax)
+    nexttile;
+    copyobj(get(ax{k},'Children'),gca);
+    set(gca, "Title", ax{k}.Title, ...
+        "XLim", ax{k}.XLim, ...
+        "YLim", ax{k}.YLim);
+    title(['k = ',num2str(k)])
+    % axis square
+    grid on
 end
+% Save the figure as a PNG file
+saveas(gcf, [animation_filename,'.png']);
+
+end
+
+if plotHPComp
+% Visualize the HP versions
+pc_structs = [results.X.pc]; 
+mn_structs = [results.X.mn];
+fig = figure;
+hold on
+plot(0:length(pc_structs),[x_0.pc.hp, pc_structs.hp], "DisplayName", "PC HP")
+plot(0:length(mn_structs),[x_0.mn.hp,mn_structs.hp], "DisplayName", "MN HP")
+legend
+title("PC and Monster HP Comparision", ... 
+    ['Seed = ', num2str(rng_seed)])
+xlabel('Timestep')
+ylabel('HP')
+ylim([0 max(const.pc.hp.max, const.mn.hp.max)])
+
+
+end
+
+
 end
 
 %% Monte Carlo
+if runMonteCarlo
 num_sims = 1000;
 
 % Initial conditions
@@ -246,17 +323,15 @@ save("data/monte_carlo_results.mat","monte_carlo_results")
 
 plot_DND_sim_results(monte_carlo_results, 'Monte Carlo');
 
+end
+
 %% Comparison to us
 if player_comparrision
     num_player_runs = 1;
     for i = 1:num_player_runs
         player_name = input('Player Name: ','s');
         x_0 = X_0(i); x = x_0; % from MonteCarlo Sim
-<<<<<<< HEAD
         u = struct('move','stop', 'action','nothing'); % For visualization
-=======
-        u = struct('move','stop', 'action','nothing'); % For plotting
->>>>>>> e79f33fd655c521a3598c930099aba5c15f7cd5b
         figure
         plot_DND_visualization(x,u)
         rng(i)
