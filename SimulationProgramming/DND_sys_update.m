@@ -1,33 +1,5 @@
 function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
     %DND_sys_update updates the system acording to system dynamics
-    % arguments
-    %     x (1,1) %State [x_pc_p, x_mn_p, x_pc_hp, x_mn_hp, x_pc_potion]^T
-    %     u (1,1) %PC Inputs [u_pc_m, u_pc_a]^T
-    %             % u_pc_m \in \Z^2 ... u_pc_a \in action:
-    %             % melee = 1, ranged = 2, health = 3, nothing = 4
-    %     w (8,1) %Dice Rolls [w_pc_d4,w_pc_d6,w_pc_d8,w_pc_d20,
-    %             % w_mn_d4,w_mn_d6,w_mn_d8,w_mn_d20]^T - not all used
-    %     const = {}
-    % end
-    % if isempty(const)
-    %     const.pc.melee.range = 1;
-    %     const.pc.melee.weapon = 2;
-    %     const.pc.ranged.range = 5;
-    %     const.pc.ranged.weapon = 2;
-    %     const.pc.speed = 1;
-    %     const.pc.ac = 15;
-    %     const.pc.strength = 5;
-    %     const.pc.dext = 5;
-    %     const.mn = const.pc; % same stats
-    %     const.potion.baseheal = 1;
-    % end
-
-    % Indexes
-    % pc_p = 1:2; mn_p = 3:4; 
-    % pc_hp = 5; mn_hp = 6; pc_potion = 7;
-    % pc_m = 1:2; pc_a = 3;
-    % pc_d4 = 1; pc_d6 = 2; pc_d8 = 3; pc_d20 = 4;
-    % mn_d4 = 5; mn_d6 = 6; mn_d8 = 7; mn_d20 = 8;
 
     % New values
     x_new = x;
@@ -38,12 +10,10 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
     if x_new_pos(1) ~= x.mn.x; x_new.pc.x = x_new_pos(1); end
     if x_new_pos(2) ~= x.mn.y; x_new.pc.y = x_new_pos(2); end
     
-
     % Player Action
     pc_sf = 0;
     mn_sf = 0;
     % Melee
-    % if u(pc_a) == 1 && norm(x_new(pc_p) - x_new(mn_p),1) <= const.pc.melee.range
     if u.action == "melee" && ...
             norm([x_new.pc.x - x_new.mn.x; ...
                 x_new.pc.y - x_new.mn.y],2) <= const.pc.melee.range
@@ -56,13 +26,12 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
         % Melee Damage
         % x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8));
         x_new.mn.hp = x_new.mn.hp - pc_sf*(const.pc.melee.weapon + w.pc.d8);
-    % Melee
-    % if u(pc_a) == 1 && norm(x_new(pc_p) - x_new(mn_p),1) <= const.pc.melee.range
+    
+        % Ranged
     elseif u.action == "ranged" && ...
             norm([x_new.pc.x - x_new.mn.x; ...
                 x_new.pc.y - x_new.mn.y],2) <= const.pc.ranged.range && (norm([x_new.pc.x - x_new.mn.x; ...
                 x_new.pc.y - x_new.mn.y],2) > const.pc.melee.range)
-        % if const.pc.strength + w(pc_d20) >= const.mn.ac && w(pc_d20) ~= 1
         if const.pc.dext + w.pc.d20 >= const.mn.ac && w.pc.d20 ~= 1
             pc_sf = 1;
         elseif w.pc.d20 == 20
@@ -72,16 +41,6 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
         % x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8));
         x_new.mn.hp = x_new.mn.hp - pc_sf*(const.pc.ranged.weapon + w.pc.d8);
 
-    % % Ranged
-    % elseif u_pc_a == 2 && norm(x_new(pc_p) - x_new(mn_p),1) <= const.pc.ranged.range
-    %     if const.pc.dext + w(pc_d20) >= const.mn.ac && w(pc_d20) ~= 1
-    %         pc_sf = 1; 
-    %     elseif w(pc_d20) == 20
-    %         pc_sf = 1;
-    %     end
-    %     % Ranged Damage
-    %     x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.ranged.weapon + w(pc_d6)); 
-
     % Heal
     elseif u.action == "heal" && x_new.pc.potion >= 1
         x_new.pc.hp = min(...
@@ -89,9 +48,6 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
             const.pc.hp.max);
         x_new.pc.potion = x_new.pc.potion - 1;
 
-    % elseif u_pc_a == 3 && x_new(pc_potion) >= 1
-    %     x_new(pc_hp) = x_new(pc_hp) + const.potion.baseheal + w(pc_d4);
-        % x_new(pc_potion) = x_new(pc_potion) - 1;
     % Nothing
     end
 
@@ -113,10 +69,6 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
     % static monster:
     % x_new.mn.x = x.mn.x; x_new.mn.y = x.mn.y;
 
-    
-    % x_new.mn.x = x_new.mn.x + mn_m(1); x_new.mn.y = x_new.mn.y + mn_m(2);
-    % (mn_p) = x_new(mn_p) + mn_m;
-
     % Monster Action
     mn_sf = 0;
     % Melee
@@ -128,7 +80,6 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
             mn_sf = 1;
         end
         % Melee Damage
-        % x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8));
         x_new.pc.hp = x_new.pc.hp - mn_sf*(const.mn.melee.weapon + w.mn.d8);
     % Ranged
     elseif norm([x_new.mn.x - x_new.pc.x; ...
@@ -140,7 +91,6 @@ function [x_new, pc_sf, mn_sf] = DND_sys_update(x,u,w,const)
             mn_sf = 1;
         end
         % Melee Damage
-        % x_new(mn_hp) = x_new(mn_hp) - pc_sf*(const.pc.melee.weapon + w(pc_d8));
         x_new.pc.hp = x_new.pc.hp - mn_sf*(const.mn.ranged.weapon + w.mn.d8);
        
     % Heal
