@@ -141,9 +141,18 @@ The evolution of the very simple system is described as Markov chains and by a n
     ]
 \end{multline} where the associated functions update states as follows: 
 
+\begin{itemize}
+    \item The players deterministic movement input: $f_{pc,m}(u_k) = u_{pc,m}$
+    \item The monsters state-dependent movement:\[
+        f_{mn,m}(x_k) = \operatorname{direction}(x_{pc,p} - x_{mn,p})
+    \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player.
+     %%%%%ADD PIECEWISE FUNCTIONS HERE AS ITEMS %%%%%%%%%%%%
+    \item {\color{red} Add the piecewise functions here as items} 
 
-where weapons/potion modifiers are taken as $a_{pc,wpn,m} = a_{mn,wpn,m} = 0$, $a_{pc,wpn,r} = a_{mn,wpn,r} = 0$, and $a_{pc,potion} = 1$
-and ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,rng,r} = 5$
+   
+\end{itemize}
+Weapon and potion modifiers are designed as $a_{pc,wpn,m} = a_{mn,wpn,m} = 0$, $a_{pc,wpn,r} = a_{mn,wpn,r} = 0$, and $a_{pc,potion} = 1$.
+Ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,rng,r} = 5$.
 
 The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivising monster death and strongly disincentivising PC death.
 
