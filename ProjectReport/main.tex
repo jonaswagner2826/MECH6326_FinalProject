@@ -22,6 +22,8 @@
 \usepackage{cleveref}
 \renewcommand{\figureautorefname}{Fig.}
 \crefname{figure}{Fig.}{Figs.}
+\crefname{section}{Section}{Sections}
+\crefname{subsection}{Subsection}{Subsections}
 
 \usepackage{cite}
 
@@ -246,6 +248,23 @@ The evolution of the system can be described as Markov chains or by a nonlinear 
             \mqty[0 & 0 & 0]^T &  a_{mn,rng,r} < \norm{x_{pc,p} - x_{mn,p}}_2
         \end{cases}
     \end{equation}
+
+    \begin{equation} \label{eq:P_pc_a}
+        \mqty[x_{k+1,pc,hp}\\ x_{k+1,mn,hp}] = \begin{cases}
+            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,melee}] & u_k = \text{melee}\\
+            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,ranged}] & u_k = \text{ranged}\\
+            \mqty[x_{k,pc,hp}^T P_{pc,heal}\\ x_{k,mn,hp}] & u_k = \text{heal}\\
+            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}] & u_k = \text{nothing}
+        \end{cases}
+    \end{equation}
+    
+    \begin{equation} \label{eq:P_mn_a}
+        x_{k+1,pc,hp} = \begin{cases}
+            x_{k,pc,hp}^T P_{mn,melee}  & \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Melee Range}\\
+            x_{k,pc,hp}^T P_{mn,ranged} & \text{Melee Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Ranged Range}\\
+            x_{k,pc,hp} & \text{Ranged Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1
+        \end{cases}
+    \end{equation}
 \end{figure*}
 
 The nonlinear update function is described as in \eqref{eq:sys_update_fun}
@@ -299,7 +318,7 @@ A few additional assumptions must be made to restrict the problem to a markov ch
     \item The update of $x_{pc,hp}$ and $x_{mn,hp}$ in closed-loop will be assumed to be independent of each other.
 \end{itemize}
 
-\subsubsection{Transition Martrices}
+\subsubsection{Transition Martrices}\label{sec:transition_matrices}
 Transition matrices are derived directly from each of the cases in the nonlinear functions $f_{pc,a}$ \eqref{eq:f_pc_a} and $f_{mn,a}$ \eqref{eq:f_mn_a} applied for a finite number of HP states, $x_{pc,k}, x_{mn,k} = P(x_{pc,hp}), _(x_{mn,hp}) \in [0,1]^{n_{hp,max}+1}$.
 
 The transition matrices will be defined as $[p_{i,j}] = P(x_{k+1} = i, x_{k} = j)$.
@@ -312,63 +331,74 @@ The actual markov chains associated with closed-loop will be selected directly b
 Since the assumption that $u_k$ will be limited to those feasible by the PC, the following described as follows:
 
 \begin{enumerate}
-    \item PC movement: $x_{k+1,pc,p} = x_{k,pc,p} + u_{pc,m}$.
-    \item PC action: \[
-        \mqty[x_{k+1,pc,hp}\\ x_{k+1,mn,hp}] = \begin{cases}
-            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,melee}] & u_k = \text{melee}\\
-            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,ranged}] & u_k = \text{ranged}\\
-            \mqty[x_{k,pc,hp}^T P_{pc,heal}\\ x_{k,mn,hp}] & u_k = \text{heal}\\
-            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}] & u_k = \text{nothing}
-        \end{cases}
+    \item PC movement: \[
+        x_{k+1,pc,p} = x_{k,pc,p} + u_{pc,m}
     \]
-    \item Monster movement: $x_{k+1,mn,p} = x_{k,mn,p} + \operatorname{direction}(x_{k+1,pc,p} - x_{k,mn,p})$.
-    \item Monster action:\[
-        x_{k+1,pc,hp} = \begin{cases}
-            x_{k,pc,hp}^T P_{mn,melee}  & \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Melee Range}\\
-            x_{k,pc,hp}^T P_{mn,ranged} & \text{Melee Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Ranged Range}\\
-            x_{k,pc,hp} & \text{Ranged Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1
-        \end{cases}
+    \item PC action: \eqref{eq:P_pc_a}
+    \item Monster movement: \[
+        x_{k+1,mn,p} = x_{k,mn,p} + \operatorname{direction}(x_{k+1,pc,p} - x_{k,mn,p})
     \]
+    \item Monster action: \eqref{eq:P_mn_a}
 \end{enumerate}
-
-It is possible to incorporate this into a single set of markov chains in higher dimensions; however, this sequential definition seems to make the most sense instead of defining a finite number of position states and closing the loop entirely.
-
 
 % -----------------------------------------------------
 % Dynamic Programming Implementation
 % -----------------------------------------------------
 \section{Dynamic Programming Implementation}
 A MDP implimentation of the dynamic programming algorithm is used to determine the optimal policy which can then be tested against the nonlinear update equation version for simulation.
-\subsection{Additional Simplifications}
+
+\subsection{MDP Implimentation}
+\subsubsection{Additional Simplifications}
 Due to the nature of the problem being of such high dimension, the following additional simplifications will be done:
 \begin{itemize}
     \item The policy will be only based on relative distances between the PC and Monster. (i.e.) \[
         x_{k,pos} = x_{pc,p} - x_{mn,p} = \mqty[x_{pc,p,x} - x_{mn,p,x}\\ x_{pc,p,y} - x_{mn,p,y}]
     \]
-    This is mainly to reduce the number of dimensions from 4 to 2 and ensure the finite position is useful.
+    This is mainly to reduce the number of position dimensions from 4 to 2 and ensure the finite position is useful.
     \item The objective function will be only based on the $HP$ of PC and monster.
     \item A value iteration method will be used with only a psudo-infinite-horizon as computing till convergence is not practical.
+    \item The player potion dimension will be reduced from $x_{pc,potion} \in \{0,1,\dots\}$ to $x_{pc,potion} \in \{0,1\}$ representing potion/no potion.
 \end{itemize}
 
+\subsubsection{Layered Markov Chain}
+The MDP will be applied upon a finite 5D space $\mathcal{X} = \mathcal{X}_{pos,x} \cross \mathcal{X}_{pos,y} \cross \mathcal{X}_{pc,hp} \cross \mathcal{X}_{mn,hp} \cross \mathcal{X}_{pc,potion}$ where the probability of being each location is stored within an array.
+For each of the potential inputs, a markov chain is then derived upon this 5D space using the transition matrices from \autoref{sec:transition_matrices}.
+Within MALTAB this is computed ahead of time (and stored in P.mat) and then flattened for matrix multiplication for computational efficiency.
+
+\subsection{Optimal Policy}
+\subsubsection{Objective Function}
 The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivizing monster death and strongly disincentivising PC death.
-Since it is only dependent on the PC and Monster HP, the stage cost static across all positions and is visualized in \cref{fig:G_k_vis}.
+Since it is only dependent on the PC and Monster HP, the stage cost static across all positions (visualization included within results in \cref{fig:G_k_vis}).
 
-
-
-
-
-
-
-
+\subsubsection{Stage-cost Updates}
+The closed-loop markov chains will be used to determine the probabilities of future states $\vb{P}[x_{k+1}]$ that can then be used for the expected next time-step cost computation: \[
+    \vb{E}[J(f(x_k,u_k,w_k))] = \vb{P}[x_{k+1}]^T J_{k+1}(x_{k+1})
+\]
+\subsubsection{Value Iteration}
+A finite-time value iteration MDP implementation is then applied, with a large finite-horizon, to approach the optimal infinite-horizon result without waiting for convergence.
+The results of which are stored in an optimal policy $u_k = \pi^{*}(x_k)$ which has been computed (and stored in pi\_star.mat).
 
 % -----------------------------------------------------
 % Results
 % -----------------------------------------------------
 \section{Results}
-This process was repeated 1000 times in a Monte Carlo simulation in order to fully realize the results of the 
-dynamic program. A visualizer was created to show the change of the PC and monster's states over the course of the 
-combat. \cref{fig:single_sim_animation_1997} below shows an example of the visualizer animation sequence. The HP values of the monster and PC 
-are plotted in \cref{fig:single_sim_hpcomp_1997}.
+\subsection{Stage Cost Function}
+\cref{fig:G_k_vis} displays the stage costs of the dynamic program, with the left and bottom red bars signifying the termination of the simulation when the PC or monster reaches 0 HP, respectively. 
+The objective is to maximize the PC's health while minimizing the monster's, resulting in a significant cost when the monster's HP is at its maximum. 
+The program is structured to minimize negative values, effectively maximizing the highest cost when the PC is at full health.
+
+\begin{figure}[thb]
+    \centering
+    \includegraphics[scale =0.44]{figs/DND_StageCost_G_k.png}
+    \caption{Stage Cost of $G_k$.}
+    \label{fig:G_k_vis}
+\end{figure}
+
+\subsection{Simulation Visualization}
+The optimal policy is tested using a simulation based on the nonlinear update equation \eqref{eq:sys_update_fun}.
+A visualizer was created to show the change of the PC and monster's states over the course of the combat. 
+\cref{fig:single_sim_animation_1997} below shows an example of the visualizer animation sequence. 
+The HP values of the monster and PC are plotted in \cref{fig:single_sim_hpcomp_1997}.
 
 \begin{figure}[h]
 \centering
@@ -382,10 +412,13 @@ are plotted in \cref{fig:single_sim_hpcomp_1997}.
     \includegraphics[scale = 0.5]{figs/DND_SingleSim_HPcomp_rng_seed=1997.png}
     \caption{A plot of the HP values of both actors from the combat scenario shown in Fig. 1}
     \label{fig:single_sim_hpcomp_1997}
-    \end{figure}
+\end{figure}
 
-The Monte Carlo simulation results differed depending on what computer processor was used to calculate the Markov decision 
-process. Using an Intel i7-8750H (8th gen) processor, the win-rate of the PC was about 40\%, as shown in \cref{fig:single_sim_animation_1997}. 
+\subsection{Monte Carlo Simulations}
+This process was repeated 1000 times in a Monte Carlo simulation in order to fully realize the results of the dynamic program. 
+The Monte Carlo simulation results differed depending on what computer processor was used to calculate the Markov decision process. 
+\subsubsection{Intel Results}
+Using an Intel i7-8750H (8th gen) processor, the win-rate of the PC was about 40\%, as shown in \cref{fig:single_sim_animation_1997}. 
 Using an AMD Ryzen 9 3950X, the win-rate of the PC was closer to 70\%, as shown in \cref{fig:monte_carlo_hist_amd}. 
 This might be due to how the processors differ in their methods of calculating random variables, as these simulations were performed using the exact same code and random number seed.
 
@@ -396,14 +429,12 @@ This might be due to how the processors differ in their methods of calculating r
     \label{fig:monte_carlo_hist_intel}
 \end{figure}
 
-
+\subsubsection{AMD Results}
 \cref{fig:monte_carlo_hist_intel,fig:monte_carlo_hist_amd} depict scenarios where one of the actors dies. 
 In some instances, both the PC and monster survive and the simulation concludes without a decisive outcome. 
 This outcome could be attributed to the random positioning of the actors on the battlefield, wherein they may be too distant from each other, causing them to spend time running towards or away from each other instead of attacking. 
 Alternatively, it could result 
 from a sequence of unfavorable dice rolls, resulting in both parties failing to land successful hits.
-
-
 
 \begin{figure}[thb]
     \centering
@@ -412,11 +443,10 @@ from a sequence of unfavorable dice rolls, resulting in both parties failing to 
     \label{fig:monte_carlo_hist_amd}
 \end{figure}
 
-The Monte Carlo simulation results were compared to human decisions in the context of D\&D gameplay, acknowledging that the optimal choice is 
-not always made by human players. 
+\subsection{Human Comparison}
+The Monte Carlo simulation results were compared to human decisions in the context of D\&D gameplay, acknowledging that the optimal choice is not always made by human players. 
 In the human simulation, the PCs' actions were manually inputted while playing against the monster, and the findings are presented in \cref{fig:dnd_player_hist}. 
-The results indicate that the human performance was superior to that of the Intel processor, achieving a 60\% win-rate. 
-However, it fell short of the performance of the AMD processor.
+The results indicate that the human performance was superior to that of the Intel processor, achieving a 60\% win-rate; however, it fell short of the performance of the AMD processor.
 
 \begin{figure}[thb]
     \centering
@@ -424,22 +454,6 @@ However, it fell short of the performance of the AMD processor.
     \caption{Human combat results over 5 simulations.}
     \label{fig:dnd_player_hist}
 \end{figure}
-
-
-\cref{fig:G_k_vis} displays the stage costs of the dynamic program, with the left and bottom red bars signifying the termination of the simulation when the PC or monster reaches 0 HP, respectively. The objective is to maximize the PC's health while minimizing the monster's, resulting in a significant cost when the monster's HP is at its maximum. 
-The program is structured to minimize negative values, effectively maximizing the highest cost when the PC is at full health.
-
-
-
-\begin{figure}[thb]
-    \centering
-    \includegraphics[scale =0.44]{figs/DND_StageCost_G_k.png}
-    \caption{Stage Cost of $G_k$.}
-    \label{fig:G_k_vis}
-\end{figure}
-
-
-
 
 % -----------------------------------------------------
 % References
