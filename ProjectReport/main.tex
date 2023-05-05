@@ -19,7 +19,9 @@
 \usepackage{todonotes}
 \usepackage{xcolor}
 \usepackage[draft]{hyperref}
+\usepackage{cleveref}
 \renewcommand{\figureautorefname}{Fig.}
+\crefname{figure}{Fig.}{Figs.}
 
 \usepackage{cite}
 
@@ -91,7 +93,7 @@ While the scenario the dynamic program will
 optimize is not a 1:1 representation of the D\&D 5e Ruleset, it is similar enough that it should be recognizable as a D\&D game \cite{dnd5e, dnd_wizards, dnd_wiki}.
 Due to the sheer number of decisions that could be made in a typical D\&D combat, many limitations had to be implemented so that the program could fit within the scope of the project. 
 These limiting assumptions will be outlined
-in detail in \autoref{sec:pblm_def}. 
+in detail in \cref{sec:pblm_def}. 
 
 In a typical D\&D combat, characters controlled by the players (PCs) face off against enemy creatures ("monsters") controlled by the Dungeon Master (DM). The actions of PCs and creatures (collectively,
 referred to as actors) are determined by a dice roll. The roll of the die plus some modifier needs to meet or exceed the so-called Armor Class (AC) to be able to count as a "hit"
@@ -153,10 +155,15 @@ For HP, let \[
 \subsubsection{Inputs}
 The inputs to the system consist of movement and actions impacting the position and hp states respectively.
 For movement, a deterministic input of 
-\begin{multline}
-    u_{pc,m}, u_{mn,m} \in \mathcal{U}_{m} = \text{\{0, N, E, S, W, NE, NW, SE, SW\}}\\
-    =\{(0,0),(-1,0), (+1,0),(0,-1), (0,+1), \\ (-1,-1), (-1,+1), (+1,-1),(+1,+1)\}
-\end{multline}
+\begin{multline*}
+    u_{pc,m}, u_{mn,m} \in \mathcal{U}_{m} \\
+    = \text{\{Stay, N, E, S, W, NE, NW, SE, SW\}}\\
+    = \left\{
+        \begin{multlined}
+        (0,0),(-1,0), (+1,0),(0,-1), (0,+1),\\
+        (-1,-1), (-1,+1), (+1,-1),(+1,+1)
+    \end{multlined}\right\}
+\end{multline*}
 
 Where \(0\) is the actor not performing a movement at all.
 
@@ -203,7 +210,8 @@ Let the inputs to the system be only the players inputs: \[
 Let the noise signal $w_k$ for each time-step be defined as a collection of the PC and Monster dice rolls, \[
     w_k = \mqty[w_{pc} \\ w_{mn}], \quad w_{i} = \mqty[w_{i,4} \\ w_{i,6} \\ w_{i,8} \\ w_{i,20}] \forall_{i = pc,mn}
     % \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
-\]The associated success or fail noise $\forall_{i=pc,mn} \forall_{j=mn,pc} \forall_{l = dex,str}$ is derived as \[
+\]
+The associated success or fail noise $\forall_{i=pc,mn} \forall_{j=mn,pc} \forall_{l = dex,str}$ is derived as \[
     w_{i,sf} = \begin{cases}
         0 & (a_{i,l} + w_{i,d20} \leq a_{j,ac})\\
         1 & (a_{i,l} + w_{i,d20} > a_{j,ac})\\
@@ -215,12 +223,27 @@ Let the noise signal $w_k$ for each time-step be defined as a collection of the 
 The evolution of the very simple system can be described as Markov chains or by a nonlinear update function.
 
 \begin{figure*}[t]
-    \begin{equation}
+    \begin{equation}\label{eq:sys_update_fun}
         x_{k+1} = f(x_k, u_k, w_k) = \mqty[
             x_{pc,p} + f_{pc,m}(u_k)\\
             x_{mn,p} + f_{mn,m}(x_k)\\
-            \smqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
+            \mqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
         ]
+    \end{equation}
+    \begin{equation}\label{eq:f_pc_a}
+        f_{pc,a} = \begin{cases}
+            \mqty[0 & -w_{pc,sf}(a_{pc,wpn,m} + w_{pc,d6}) & 0]^T & u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,m}\\
+            \mqty[0 & -w_{pc,sf}(a_{pc,wpn,r} + w_{pc,d8}) & 0]^T & u_{pc,a} = \text{Ranged} \text{ AND } a_{pc,rng,m} < \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,r}\\
+            \mqty[a_{pc,potion} + w_{pc,d4} & 0 & -1]^T & u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1\\%\text{Have Potion}\\
+            \mqty[0 & 0 & 0] & u_{pc,a} = \text{Nothing} \text{ OR } \text{Otherwise}
+        \end{cases}
+    \end{equation}
+    \begin{equation}\label{eq:f_mn_a}
+        f_{mn,a} = \begin{cases}
+            \mqty[-w_{mn,sf}(a_{mn,wpn,m} + w_{mn,d6}) & 0 & 0]^T & \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{mn,rng,m}\\
+            \mqty[- w_{mn,sf}(a_{mn,wpn,r} + w_{mn,d8}) & 0 & 0]^T & a_{mn,rng,m} < \norm{x_{pc,p} - x_{mn,p}}_2 \leq  a_{mn,rng,r}\\
+            \mqty[0 & 0 & 0]^T &  a_{mn,rng,r} < \norm{x_{pc,p} - x_{mn,p}}_2
+        \end{cases}
     \end{equation}
 \end{figure*}
 
@@ -230,34 +253,35 @@ where the associated functions update states as follows:
     \item The players deterministic movement input: \[
         f_{pc,m}(u_k) = u_{pc,m}
     \]
-    \item The PC actions dependent on action selection and dice rolls as follows:
-\end{itemize} % to return to no indent (wouldn't work for enumerate)
+    \item The PC actions dependent on action selection and dice rolls as in \eqref{eq:f_pc_a}. 
+    % follows:
+% \end{itemize} % to return to no indent (wouldn't work for enumerate)
 
-If $u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,m}$, then \[
-        f_{pc,a} = \mqty[0 & -w_{pc,sf}(a_{pc,wpn,m} + w_{pc,d6}) & 0]^T 
-    \] 
-Else if $u_{pc,a} = \text{Ranged} \text{ AND } a_{pc,rng,m} < \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,r}$, then \[
-        f_{pc,a} = \mqty[0 & -w_{pc,sf}(a_{pc,wpn,r} + w_{pc,d8}) & 0]^T
-    \]
-Else if $u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1$, then \[
-        f_{pc,a} = \mqty[a_{pc,potion} + w_{pc,d4} & 0 & -1]^T
-    \]
-Otherwise, $f_{pc,a} = \smqty[0 & 0 & 0]^T$
+% If $u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,m}$, then \[
+%         f_{pc,a} = \mqty[0 & -w_{pc,sf}(a_{pc,wpn,m} + w_{pc,d6}) & 0]^T 
+%     \] 
+% Else if $u_{pc,a} = \text{Ranged} \text{ AND } a_{pc,rng,m} < \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,r}$, then \[
+%         f_{pc,a} = \mqty[0 & -w_{pc,sf}(a_{pc,wpn,r} + w_{pc,d8}) & 0]^T
+%     \]
+% Else if $u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1$, then \[
+%         f_{pc,a} = \mqty[a_{pc,potion} + w_{pc,d4} & 0 & -1]^T
+%     \]
+% Otherwise, $f_{pc,a} = \smqty[0 & 0 & 0]^T$
 
-\begin{itemize} % resume the previous itemize (wouldn't work for enumerate)
+% \begin{itemize} % resume the previous itemize (wouldn't work for enumerate)
     \item The monsters state-dependent movement:\[
         f_{mn,m}(x_k) = \operatorname{direction}(x_{pc,p} - x_{mn,p})
     \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player.
-    \item The monsters state-dependent action: 
+    \item The monsters state-dependent action as in \eqref{eq:f_mn_a}.
 \end{itemize}
 
-If $\norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{mn,rng,m}$, then \[
-    f_{mn,a} = \mqty[-w_{mn,sf}(a_{mn,wpn,m} + w_{mn,d6}) & 0 & 0]^T
-\]
-Else if $\norm{x_{pc,p} - x_{mn,p}}_2 \leq  a_{mn,rng,r}$, then \[
-    f_{mn,a} = \mqty[- w_{mn,sf}(a_{mn,wpn,r} + w_{mn,d8}) & 0 & 0]^T
-\]
-Otherwise $f_{mn,a} = \smqty[0 & 0 & 0]^T$.
+% If $\norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{mn,rng,m}$, then \[
+%     f_{mn,a} = \mqty[-w_{mn,sf}(a_{mn,wpn,m} + w_{mn,d6}) & 0 & 0]^T
+% \]
+% Else if $\norm{x_{pc,p} - x_{mn,p}}_2 \leq  a_{mn,rng,r}$, then \[
+%     f_{mn,a} = \mqty[- w_{mn,sf}(a_{mn,wpn,r} + w_{mn,d8}) & 0 & 0]^T
+% \]
+% Otherwise $f_{mn,a} = \smqty[0 & 0 & 0]^T$.
 
 Weapon and potion modifiers are designed as $a_{pc,wpn,m} = a_{mn,wpn,m} = 0$, $a_{pc,wpn,r} = a_{mn,wpn,r} = 0$, and $a_{pc,potion} = 1$.
 Ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,rng,r} = 5$.
@@ -267,7 +291,7 @@ Equivalent markov chains can be defined for each of the steps of a turn instead 
 
 The relative and deterministic nature of makes those updates much easier to be done using the update function; however, the stochastic nature of actions lend well towards a markov implementation.
 
-Transition matrices can be derived directly from the nonlinear functions for 
+Transition matrices can be derived directly from the nonlinear functions for $f_{pc,a}$ and $f_{mn,a}$ applied upon a 
 
 
 
@@ -325,22 +349,26 @@ combat. Fig. 1 below shows an example of the visualizer animation sequence.
 \centering
 \includegraphics[scale = 0.2]{figs/DND_SingleSim_Animation_rng_seed=1997.png}
 \caption{A combat scenario in which the PC defeats the monster in 4 time steps}
+\label{fig:single_sim_animation_1997}
 \end{figure}
 
 The Monte Carlo simulation results differed depending on what computer processor was used to calculate the Markov decision 
-process. Using an Intel i7-8750H (8th gen) processor, the win-rate of the PC was about 40\%, as shown in Fig. 2. Using an AMD 
-Ryzen 9 3950X, the win-rate of the PC was closer to 70\%, as shown in Fig. 3. This might be due to how the processors differ in their methods of calculating
-random variables, as these simulations were performed using the exact same code and random number seed.
+process. Using an Intel i7-8750H (8th gen) processor, the win-rate of the PC was about 40\%, as shown in \cref{fig:single_sim_animation_1997}. 
+Using an AMD Ryzen 9 3950X, the win-rate of the PC was closer to 70\%, as shown in \cref{fig:monte_carlo_hist_amd}. 
+This might be due to how the processors differ in their methods of calculating random variables, as these simulations were performed using the exact same code and random number seed.
 
 \begin{figure}[thb]
     \centering
     \includegraphics[scale = 0.5]{figs/DND_monte_carlo_hist.png}
     \caption{Monte Carlo simulation performed on an Intel processor.}
+    \label{fig:monte_carlo_hist_intel}
 \end{figure}
 
-Figures 2 and 3 depict scenarios where one of the actors dies. In some instances, both the PC and monster survive and the simulation concludes 
-without a decisive outcome. This outcome could be attributed to the random positioning of the actors on the battlefield, wherein they may be too 
-distant from each other, causing them to spend time running towards or away from each other instead of attacking. Alternatively, it could result 
+
+\cref{fig:single_sim_animation_1997,fig:monte_carlo_hist_intel} depict scenarios where one of the actors dies. 
+In some instances, both the PC and monster survive and the simulation concludes without a decisive outcome. 
+This outcome could be attributed to the random positioning of the actors on the battlefield, wherein they may be too distant from each other, causing them to spend time running towards or away from each other instead of attacking. 
+Alternatively, it could result 
 from a sequence of unfavorable dice rolls, resulting in both parties failing to land successful hits.
 
 
@@ -352,21 +380,21 @@ from a sequence of unfavorable dice rolls, resulting in both parties failing to 
 \end{figure}
 
 The Monte Carlo simulation results were compared to human decisions in the context of D\&D gameplay, acknowledging that the optimal choice is 
-not always made by human players. In the human simulation, the PCs' actions were manually inputted while playing against the monster, and the 
-findings are presented in Fig. 4. The results indicate that the human performance was superior to that of the Intel processor, 
-achieving a 60\% win-rate. However, it fell short of the performance of the AMD processor.
+not always made by human players. 
+In the human simulation, the PCs' actions were manually inputted while playing against the monster, and the findings are presented in \cref{fig:dnd_player_hist}. 
+The results indicate that the human performance was superior to that of the Intel processor, achieving a 60\% win-rate. 
+However, it fell short of the performance of the AMD processor.
 
 \begin{figure}[thb]
     \centering
     \includegraphics[scale = 0.5]{figs/DND_player_jonas_hist.png}
     \caption{Human combat results over 5 simulations.}
+    \label{fig:dnd_player_hist}
 \end{figure}
 
 
-Fig. 5 displays the stage costs of the dynamic program, with the left and bottom red bars signifying the termination of the simulation 
-when the PC or monster reaches 0 HP, respectively. The objective is to maximize the PC's health while minimizing the monster's, resulting in a 
-significant cost when the monster's HP is at its maximum. The program is structured to minimize negative values, effectively maximizing the highest
-cost when the PC is at full health.
+\cref{fig:G_k_vis} displays the stage costs of the dynamic program, with the left and bottom red bars signifying the termination of the simulation when the PC or monster reaches 0 HP, respectively. The objective is to maximize the PC's health while minimizing the monster's, resulting in a significant cost when the monster's HP is at its maximum. 
+The program is structured to minimize negative values, effectively maximizing the highest cost when the PC is at full health.
 
 
 
@@ -374,6 +402,7 @@ cost when the PC is at full health.
     \centering
     \includegraphics[scale =0.44]{figs/DND_StageCost_G_k.png}
     \caption{Stage Cost of $G_k$.}
+    \label{fig:G_k_vis}
 \end{figure}
 
 
