@@ -7,10 +7,10 @@
 
 recomputeP = false;
 recalculate_pi_star = false;
-visualize_G_k = true;
+visualize_G_k = false;
 runDNDvisualization = false;
 runMonteCarlo = false;
-plotHPComp = false;
+plotHPComp = true;
 player_comparrision = false;
 
 % Sim Settings
@@ -286,6 +286,8 @@ xlabel('Timestep')
 ylabel('HP')
 ylim([0 max(const.pc.hp.max, const.mn.hp.max)])
 
+saveas(gcf, [fileparts((mfilename('fullpath'))),'\figs\',...
+    'DND_SingleSim_HPcomp_rng_seed=', num2str(rng_seed),'.png'])
 
 end
 
