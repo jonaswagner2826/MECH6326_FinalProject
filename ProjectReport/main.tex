@@ -78,7 +78,8 @@
     Combat is based on initiative order, and each round is a full completion of the initiative list.
 
     This system uses a Markov Decision Process to create the dynamic program.  
-    This dynamic programming algorithm has been shown to be up to 70\% effective in winning these combat scenarios.
+    This dynamic programming algorithm has been shown to be up to 70\% effective in winning these combat scenarios, and can be shown to achieve higher
+    win-rates than human inputs alone.
 
 
 \end{abstract}
@@ -97,12 +98,12 @@ in detail in \cref{sec:pblm_def}.
 
 In a typical D\&D combat, characters controlled by the players (PCs) face off against enemy creatures ("monsters") controlled by the Dungeon Master (DM). The actions of PCs and creatures (collectively,
 referred to as actors) are determined by a dice roll. The roll of the die plus some modifier needs to meet or exceed the so-called Armor Class (AC) to be able to count as a "hit"
-and deal damage. The PCs AC is known, while the AC of the monster is hidden from the players. Only when the players roll some number and hit do they ascertain the AC of the monster.
+and deal damage. The PC's AC is known, while the AC of the monster is hidden from the players. Only when the players roll some number and hit do they ascertain the AC of the monster.
 
-Players can perform many actions in their turn, including melee or ranged weapon attacks, spell casts, movement on the battlefield, interaction with their environment, helping other
+Players can perform many actions in their turn, including: melee or ranged weapon attacks, spell casts, movement on the battlefield, interaction with their environment, helping other
 PCs, ingest a potion (or poison), and more. For the simulation outlined in this report, the only actions a PC can take are: move, weapon attack, drink a potion, or do nothing. Monsters 
 will have the same set of actions, sans drinking a potion. The battlefield is flat with no obstacles or borders to limit movement. Both PC and monster have an AC of 15. Their strength and dexterity modifiers (used
-for the sword and the bow) are +5, but this modifier is only used to determine the success of the attack, not as a modifier on the damage done to the
+for the sword and the bow) are +5, but this modifier is only used to determine the success of the attack, not as a modifier on the damage done.
 
 A combat is considered successful if the PCs live while killing the monster. Therefore, the dynamic program will be optimized to maximize the HP value of the PC, while minimizing the HP
 value of the monster. 
@@ -207,7 +208,7 @@ Let the inputs to the system be only the players inputs: \[
     u_k = \mqty[u_{pc,m}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
 \] The monster's inputs to the system will be incorporated as a deterministic and stochastic input that are closed-loop within the system and treated as part of the nonlinear aspects of the update function.
 
-Let the noise signal $w_k$ for each time-step be defined as a collection of the PC and Monster dice rolls, \[
+Let the noise signal $w_k$ for each time-step be defined as a collection of the PC and monster dice rolls, \[
     w_k = \mqty[w_{pc} \\ w_{mn}], \quad w_{i} = \mqty[w_{i,4} \\ w_{i,6} \\ w_{i,8} \\ w_{i,20}] \forall_{i = pc,mn}
     % \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
 \]
@@ -220,7 +221,7 @@ The associated success or fail noise $\forall_{i=pc,mn} \forall_{j=mn,pc} \foral
 
 % \pagebreak
 \subsection{System Update Equation}
-The evolution of the very simple system can be described as Markov chains or by a nonlinear update function.
+The evolution of the system can be described as Markov chains or by a nonlinear update function.
 
 \begin{figure*}[t]
     \begin{equation}\label{eq:sys_update_fun}
@@ -247,7 +248,7 @@ The evolution of the very simple system can be described as Markov chains or by 
     \end{equation}
 \end{figure*}
 
-The nonlinear update function is as in \eqref{eq:sys_update_fun}
+The nonlinear update function is described as in \eqref{eq:sys_update_fun}
 where the associated functions update states as follows: 
 \begin{itemize}
     \item The players deterministic movement input: \[
@@ -287,9 +288,9 @@ Weapon and potion modifiers are designed as $a_{pc,wpn,m} = a_{mn,wpn,m} = 0$, $
 Ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,rng,r} = 5$.
 
 \subsection{Markov Chain Realization}
-Equivalent markov chains can be defined for each of the steps of a turn instead of the nonlinear mixed deterministic/stochastic functions. 
+Equivalent Markov chains can be defined for each of the steps of a turn instead of the nonlinear mixed deterministic and stochastic functions. 
 
-The relative and deterministic nature of makes those updates much easier to be done using the update function; however, the stochastic nature of actions lend well towards a markov implementation.
+The relative and deterministic nature of these makes updating the system much easier using an update function; however, the stochastic nature of actions lend themselves to a Markov implementation.
 
 Transition matrices can be derived directly from the nonlinear functions for $f_{pc,a}$ and $f_{mn,a}$ applied upon a 
 
@@ -301,27 +302,15 @@ Transition matrices can be derived directly from the nonlinear functions for $f_
 % -----------------------------------------------------
 \section{Dynamic Programming Implementation}
 
-
-
-
-
-
-
-
 \subsubsection{Additional assumptions}
-A few additional assumptions must be made to restrict the problem to a markov chain implementation:
+A few additional assumptions must be made to restrict the problem to a Markov chain implementation:
 \begin{itemize}
-    \item The monster and pc hp will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
-    \item The ensuring of a potion will be a restriction upon the pc input/result in a nothing action if no potion is available.
+    \item The monster and PC hp will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
+    \item The number of potions in the PC's inventory restrict how many times the potion action can occur. If there are no potions left, the PC does nothing instead.
 \end{itemize}
 
 
-
-
-
-
-
-The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivising monster death and strongly disincentivising PC death.
+The objective function is defined to minimize the monster's HP and maximize the PC's HP. The function also incentivises monster death and strongly disincentivises PC death.
 
 
 
@@ -341,9 +330,8 @@ The objective function is defined to minimize the monsters HP and maximize the P
 \section{Results}
 This process was repeated 1000 times in a Monte Carlo simulation in order to fully realize the results of the 
 dynamic program. A visualizer was created to show the change of the PC and monster's states over the course of the 
-combat. Fig. 1 below shows an example of the visualizer animation sequence.
-
-\pagebreak
+combat. \cref{fig:single_sim_animation_1997} below shows an example of the visualizer animation sequence. The HP values of the monster and PC 
+are plotted in \cref{fig:single_sim_hpcomp_1997}.
 
 \begin{figure}[h]
 \centering
@@ -351,6 +339,13 @@ combat. Fig. 1 below shows an example of the visualizer animation sequence.
 \caption{A combat scenario in which the PC defeats the monster in 4 time steps}
 \label{fig:single_sim_animation_1997}
 \end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale = 0.5]{figs/DND_SingleSim_HPcomp_rng_seed=1997.png}
+    \caption{A plot of the HP values of both actors from the combat scenario shown in Fig. 1}
+    \label{fig:single_sim_hpcomp_1997}
+    \end{figure}
 
 The Monte Carlo simulation results differed depending on what computer processor was used to calculate the Markov decision 
 process. Using an Intel i7-8750H (8th gen) processor, the win-rate of the PC was about 40\%, as shown in \cref{fig:single_sim_animation_1997}. 
@@ -365,7 +360,7 @@ This might be due to how the processors differ in their methods of calculating r
 \end{figure}
 
 
-\cref{fig:single_sim_animation_1997,fig:monte_carlo_hist_intel} depict scenarios where one of the actors dies. 
+\cref{fig:monte_carlo_hist_intel,fig:monte_carlo_hist_amd} depict scenarios where one of the actors dies. 
 In some instances, both the PC and monster survive and the simulation concludes without a decisive outcome. 
 This outcome could be attributed to the random positioning of the actors on the battlefield, wherein they may be too distant from each other, causing them to spend time running towards or away from each other instead of attacking. 
 Alternatively, it could result 
@@ -377,6 +372,7 @@ from a sequence of unfavorable dice rolls, resulting in both parties failing to 
     \centering
     \includegraphics[width=\columnwidth]{figs/DND_MChist_AMD.png}
     \caption{Monte Carlo simulation performed on an AMD processor.}
+    \label{fig:monte_carlo_hist_amd}
 \end{figure}
 
 The Monte Carlo simulation results were compared to human decisions in the context of D\&D gameplay, acknowledging that the optimal choice is 
@@ -404,6 +400,7 @@ The program is structured to minimize negative values, effectively maximizing th
     \caption{Stage Cost of $G_k$.}
     \label{fig:G_k_vis}
 \end{figure}
+
 
 
 
