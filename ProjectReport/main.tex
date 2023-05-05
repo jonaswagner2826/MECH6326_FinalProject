@@ -88,7 +88,7 @@
 \section{Introduction}
 The goal of this project is to create a dynamic program that can optimize a combat scenario for the game Dungeons \& Dragons. 
 While the scenario the dynamic program will 
-optimize is not a 1:1 representation of the D\&D 5e Ruleset, it is similar enough that it should be recognizable as a D\&D game \cite{dnd_wizards, dnd_beyond, dnd_wiki}.
+optimize is not a 1:1 representation of the D\&D 5e Ruleset, it is similar enough that it should be recognizable as a D\&D game \cite{dnd5e, dnd_wizards, dnd_wiki}.
 Due to the sheer number of decisions that could be made in a typical D\&D combat, many limitations had to be implemented so that the program could fit within the scope of the project. 
 These limiting assumptions will be outlined
 in detail in \autoref{sec:pblm_def}. 
@@ -210,18 +210,21 @@ Let the noise signal $w_k$ for each time-step be defined as a collection of the 
     \end{cases}
 \] where the modifiers are held constant as $a_{i,l} = a_{i,dex} = a_{i,str} = 5$ and $a_{j,ac} = 15$.
 
-\pagebreak
+% \pagebreak
 \subsection{System Update Equation}
 The evolution of the very simple system can be described as Markov chains or by a nonlinear update function.
 
-The nonlinear update function is as follows: \begin{multline}
-    x_{k+1} = f(x_k, u_k, w_k)\\
-    = \mqty[
-        x_{pc,p} + f_{pc,m}(u_k)\\
-        x_{mn,p} + f_{mn,m}(x_k)\\
-        \mqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
-    ]
-\end{multline}
+\begin{figure*}[t]
+    \begin{equation}
+        x_{k+1} = f(x_k, u_k, w_k) = \mqty[
+            x_{pc,p} + f_{pc,m}(u_k)\\
+            x_{mn,p} + f_{mn,m}(x_k)\\
+            \smqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
+        ]
+    \end{equation}
+\end{figure*}
+
+The nonlinear update function is as in \eqref{eq:sys_update_fun}
 where the associated functions update states as follows: 
 \begin{itemize}
     \item The players deterministic movement input: \[
