@@ -231,16 +231,17 @@ and
 $P(w_{i,sf} = 1) = (P(w_{i,d20} = 20) + P({\color{red} 5} + w_{i,d20} \geq {\color{red} 15})) - (P(w_{i,d20} = 1)) = 1/20 + 11/20 - 1/20 = 11/20$.
 In shorthand, $P(w_{i,sf}=\smqty[0\\1]) = \smqty[0.45\\0.55]$.
 
-The evolution of the very simple system can be described as Markov chains or by a nonlinear update function:\[
-    x_{k+1} = f(x_k, u_k, w_k) 
-    % = \mqty[x_{pc,p}\\ x_{mn,p}\\ x_{pc,hp}\\ x_{mn,hp}]_{k+1}
-    % = \mqty[f_{pc,m}(x_k,u_k)\\f_{mn,m}(x_k)\\ f_{pc,a}()]
+The evolution of the very simple system can be described as Markov chains or by a nonlinear update function.
+
+The nonlinear update function is as follows: \begin{multline}
+    x_{k+1} = f(x_k, u_k, w_k)\\
     = \mqty[
         x_{pc,p} + f_{pc,m}(u_k)\\
         x_{mn,p} + f_{mn,m}(x_k)\\
         \mqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
     ]
-\] where the associated functions update states as follows: 
+\end{multline}
+where the associated functions update states as follows: 
 \begin{itemize}
     \item The players deterministic movement input: $f_{pc,m}(u_k) = u_{pc,m}$
     \item The monsters state-dependent movement:\[
@@ -311,7 +312,7 @@ The markov chain transition matrix will be denoted as $P_{pc,melee}$.
 
 Essentially the same definition is true with $u_k = \text{ranged}$ but with $w_{i,d8}$ and resulting in $P(x_{k+1} = j) = 0.45$, $P(x_{k+1} = j-2-1) = \cdots = P(x_{k+1} = j-2-8) = \frac{0.55}{8} = \frac{11}{160} = 0.06875$ and denoted with markov chain transition matrix $P_{pc,ranged}$.
 
-Similarly for $u_k = \text{heal}$ but with $w_{i,d4}$ and not having the $w_{sf}$, meaning $P(x_{k+1} = j+1+1) = \cdots = P(x_{k+1} = j+1+4) = 1/4 = 0.25$ and denoted with markov chain transition matrix $P_{pc,heal}$.
+Similarly, for $u_k = \text{heal}$ but with $w_{i,d4}$ and not having the $w_{sf}$, meaning $P(x_{k+1} = j+1+1) = \cdots = P(x_{k+1} = j+1+4) = 1/4 = 0.25$ and denoted with markov chain transition matrix $P_{pc,heal}$.
 
 Finally, for $u_k = \text{nothing}$ the transition matrix is defined as the identity matrix: $P_{pc,nothing} = \vb{I}_{n_{hp,max}}$
 

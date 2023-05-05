@@ -86,10 +86,12 @@
 % Introduction
 % -----------------------------------------------------
 \section{Introduction}
-The goal of this project is to create a dynamic program that can optimize a combat scenario for the game Dungeons \& Dragons. While the scenario the dynamic program will 
-optimize is not a 1:1 representation of the D\&D 5e Ruleset, it is similar enough that it should be recognizable as a D\&D game. Due to the sheer number of decisions that could
-be made in a typical D\&D combat, many limitations had to be implemented so that the program could fit within the scope of the project. These limiting assumptions will be outlined
-in detail in Section II. 
+The goal of this project is to create a dynamic program that can optimize a combat scenario for the game Dungeons \& Dragons. 
+While the scenario the dynamic program will 
+optimize is not a 1:1 representation of the D\&D 5e Ruleset, it is similar enough that it should be recognizable as a D\&D game \cite{dnd_wizards, dnd_beyond, dnd_wiki}.
+Due to the sheer number of decisions that could be made in a typical D\&D combat, many limitations had to be implemented so that the program could fit within the scope of the project. 
+These limiting assumptions will be outlined
+in detail in \autoref{sec:pblm_def}. 
 
 In a typical D\&D combat, characters controlled by the players (PCs) face off against enemy creatures ("monsters") controlled by the Dungeon Master (DM). The actions of PCs and creatures (collectively,
 referred to as actors) are determined by a dice roll. The roll of the die plus some modifier needs to meet or exceed the so-called Armor Class (AC) to be able to count as a "hit"
@@ -106,59 +108,9 @@ value of the monster.
 % -----------------------------------------------------
 % Problem Definition
 % -----------------------------------------------------
-\section{Problem Definition}
-For the simplistic case, let states at time-step $k$, be \[
-    x_k = \mqty[x_{pc,p}\\x_{mn,p}\\x_{pc,hp}\\x_{mn,hp}\\ x_{pc,potion}] 
-    \in \mathcal{X} = \mathcal{X}_p^2 \cross \mathcal{X}_{hp}^2 \cross \mathcal{X}_{potion}
-    \subseteq \Z^{4} \cross \Z_{+}^{2} \cross \Z_{+}
-\] where states and sets are defined as before and $x_{pc,potion} \in \mathcal{X}_{potion}$ is the number of potions available to the PC.
-
-Let the inputs to the system be only the players inputs: \[
-    u_k = \mqty[u_{pc,m}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
-\] The monster's inputs to the system will be incorporated as a deterministic and stochastic input that are closed-loop within the system and treated as part of the nonlinear aspects of the update function.
-
-Let the noise signal $w_k$ for each time-step be defined as a collection of the PC and Monster dice rolls, \[
-    w_k = \mqty[w_{pc} \\ w_{mn}], \quad w_{i} = \mqty[w_{i,4} \\ w_{i,6} \\ w_{i,8} \\ w_{i,20}] \forall_{i = pc,mn}
-    % \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
-\]The associated success or fail noise $\forall_{i=pc,mn} \forall_{j=mn,pc} \forall_{l = dex,str}$ is derived as \[
-    w_{i,sf} = \begin{cases}
-        0 & (a_{i,l} + w_{i,d20} \leq a_{j,ac})\\
-        1 & (a_{i,l} + w_{i,d20} > a_{j,ac})\\
-    \end{cases}
-\] where the modifiers are held constant as $a_{i,l} = a_{i,dex} = a_{i,str} = 5$ and $a_{j,ac} = 15$.
-
-\pagebreak
-The evolution of the very simple system is described as Markov chains and by a nonlinear update function:
-
-\begin{multline}
-    x_{k+1} = f(x_k, u_k, w_k) 
-    % = \mqty[x_{pc,p}\\ x_{mn,p}\\ x_{pc,hp}\\ x_{mn,hp}]_{k+1}
-    % = \mqty[f_{pc,m}(x_k,u_k)\\f_{mn,m}(x_k)\\ f_{pc,a}()]
-    = \\ \mqty[
-        x_{pc,p} + f_{pc,m}(u_k)\\
-        x_{mn,p} + f_{mn,m}(x_k)\\
-        \mqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
-    ]
-\end{multline} where the associated functions update states as follows: 
-
-\begin{itemize}
-    \item The players deterministic movement input: $f_{pc,m}(u_k) = u_{pc,m}$
-    \item The monsters state-dependent movement:\[
-        f_{mn,m}(x_k) = \operatorname{direction}(x_{pc,p} - x_{mn,p})
-    \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player.
-     %%%%%ADD PIECEWISE FUNCTIONS HERE AS ITEMS %%%%%%%%%%%%
-    \item {\color{red} Add the piecewise functions here as items} 
-
-   
-\end{itemize}
-Weapon and potion modifiers are designed as $a_{pc,wpn,m} = a_{mn,wpn,m} = 0$, $a_{pc,wpn,r} = a_{mn,wpn,r} = 0$, and $a_{pc,potion} = 1$.
-Ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,rng,r} = 5$.
-
-The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivising monster death and strongly disincentivising PC death.
-
-
+\section{Problem Definition}\label{sec:pblm_def}
 % System Definition
-\subsection{System Definition}
+\subsection{Limiting Assumptions}
 
 \begin{table}[h]
 \centering
@@ -188,6 +140,7 @@ The objective function is defined to minimize the monsters HP and maximize the P
 The assumptions for this problem are outlined above. It is important to point out that this is not a true infinite time horizon problem: the scenario does not end when converging to
 some value. The simulation ends when one of the actors reaches a HP value of zero. Because it is unknown how many time steps this will take, the program is modeled like an infinite time horizon.
 
+\subsection{Environment Definition}
 \subsubsection{States}
 Let each character be associated with position and HP states.
 For position, let \[
@@ -229,23 +182,121 @@ The PC is also allowed to use a health potion which has a stochastic effect upon
 The stochastic aspects of the system can be described as a noise signal consisting of the PC and monster dice rolls.
 The actions themselves can be modeled as either a function of the noise signal or as a Markov chain acting directly upon the PC or Monster HP states.
 
-
 The noise introduced by dice rolls are defined as for \{d2, d4, d6, d8, d10, d20, d100\} as 
 \[
     w_{pc,dn}, w_{mn,dn} \in \mathcal{W}_{dn} = \{1,2,\dots,n\}
 \] with $n = 2,4,6,8,10,20,100$ respectively where each outcome is equally likely.
 The PDF can be seen in shorthand with $P(w_{i,dn} = \smqty[1 & \cdots & n]^T) = \frac{1}{n}\smqty[1 & \cdots & 1]^T$.
 % 
+\subsection{Simplistic System}
+\subsubsection{States, Inputs, and Noise}
+For the simplistic case, let states at time-step $k$, be \[
+    x_k = \mqty[x_{pc,p}\\x_{mn,p}\\x_{pc,hp}\\x_{mn,hp}\\ x_{pc,potion}] 
+    \in \mathcal{X} = \mathcal{X}_p^2 \cross \mathcal{X}_{hp}^2 \cross \mathcal{X}_{potion}
+    \subseteq \Z^{4} \cross \Z_{+}^{2} \cross \Z_{+}
+\] where states and sets are defined as before and $x_{pc,potion} \in \mathcal{X}_{potion}$ is the number of potions available to the PC.
 
+Let the inputs to the system be only the players inputs: \[
+    u_k = \mqty[u_{pc,m}\\u_{pc,a}] \in \mathcal{U} = \mathcal{U}_{p} \cross \mathcal{U}_{a} %\subseteq \{(-1,0), (+1,0), (0,-1),(0,+1), {\color{red} (-1,-1), (-1,+1), (+1,-1),(+1,+1)}\} \cross \{\text{Melee, Ranged, Heal, Nothing}\}
+\] The monster's inputs to the system will be incorporated as a deterministic and stochastic input that are closed-loop within the system and treated as part of the nonlinear aspects of the update function.
 
+Let the noise signal $w_k$ for each time-step be defined as a collection of the PC and Monster dice rolls, \[
+    w_k = \mqty[w_{pc} \\ w_{mn}], \quad w_{i} = \mqty[w_{i,4} \\ w_{i,6} \\ w_{i,8} \\ w_{i,20}] \forall_{i = pc,mn}
+    % \mqty[w_{pc,sf}\\w_{pc,d4}\\w_{pc,d6}\\w_{pc,d}\\w_{mn,sf}\\w_{mn,d4}\\w_{mn,d6}\\w_{mn,d8}]
+\]The associated success or fail noise $\forall_{i=pc,mn} \forall_{j=mn,pc} \forall_{l = dex,str}$ is derived as \[
+    w_{i,sf} = \begin{cases}
+        0 & (a_{i,l} + w_{i,d20} \leq a_{j,ac})\\
+        1 & (a_{i,l} + w_{i,d20} > a_{j,ac})\\
+    \end{cases}
+\] where the modifiers are held constant as $a_{i,l} = a_{i,dex} = a_{i,str} = 5$ and $a_{j,ac} = 15$.
+
+\pagebreak
+\subsection{System Update Equation}
+The evolution of the very simple system can be described as Markov chains or by a nonlinear update function.
+
+The nonlinear update function is as follows: \begin{multline}
+    x_{k+1} = f(x_k, u_k, w_k)\\
+    = \mqty[
+        x_{pc,p} + f_{pc,m}(u_k)\\
+        x_{mn,p} + f_{mn,m}(x_k)\\
+        \mqty[x_{pc,hp}\\ x_{mn,hp} \\ x_{pc,potion}] + f_{pc,a}(x_k,u_k,w_k) + f_{mn,a}(x_k,w_k)
+    ]
+\end{multline}
+where the associated functions update states as follows: 
+\begin{itemize}
+    \item The players deterministic movement input: \[
+        f_{pc,m}(u_k) = u_{pc,m}
+    \]
+    \item The PC actions dependent on action selection and dice rolls as follows:
+\end{itemize} % to return to no indent (wouldn't work for enumerate)
+
+If $u_{pc,a} = \text{Melee} \text{ AND } \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,m}$, then \[
+        f_{pc,a} = \mqty[0 & -w_{pc,sf}(a_{pc,wpn,m} + w_{pc,d6}) & 0]^T 
+    \] 
+Else if $u_{pc,a} = \text{Ranged} \text{ AND } a_{pc,rng,m} < \norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{pc,rng,r}$, then \[
+        f_{pc,a} = \mqty[0 & -w_{pc,sf}(a_{pc,wpn,r} + w_{pc,d8}) & 0]^T
+    \]
+Else if $u_{pc,a} = \text{Heal} \text{ AND } x_{pc,potion} \geq 1$, then \[
+        f_{pc,a} = \mqty[a_{pc,potion} + w_{pc,d4} & 0 & -1]^T
+    \]
+Otherwise, $f_{pc,a} = \smqty[0 & 0 & 0]^T$
+
+\begin{itemize} % resume the previous itemize (wouldn't work for enumerate)
+    \item The monsters state-dependent movement:\[
+        f_{mn,m}(x_k) = \operatorname{direction}(x_{pc,p} - x_{mn,p})
+    \] where $\operatorname{direction}()$ is calculated as the closest cardinal direction that heads towards the player.
+    \item The monsters state-dependent action: 
+\end{itemize}
+
+If $\norm{x_{pc,p} - x_{mn,p}}_2 \leq a_{mn,rng,m}$, then \[
+    f_{mn,a} = \mqty[-w_{mn,sf}(a_{mn,wpn,m} + w_{mn,d6}) & 0 & 0]^T
+\]
+Else if $\norm{x_{pc,p} - x_{mn,p}}_2 \leq  a_{mn,rng,r}$, then \[
+    f_{mn,a} = \mqty[- w_{mn,sf}(a_{mn,wpn,r} + w_{mn,d8}) & 0 & 0]^T
+\]
+Otherwise $f_{mn,a} = \smqty[0 & 0 & 0]^T$.
+
+Weapon and potion modifiers are designed as $a_{pc,wpn,m} = a_{mn,wpn,m} = 0$, $a_{pc,wpn,r} = a_{mn,wpn,r} = 0$, and $a_{pc,potion} = 1$.
+Ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,rng,r} = 5$.
+
+\subsection{Markov Chain Realization}
+Equivalent markov chains can be defined for each of the steps of a turn instead of the nonlinear mixed deterministic/stochastic functions. 
+
+The relative and deterministic nature of makes those updates much easier to be done using the update function; however, the stochastic nature of actions lend well towards a markov implementation.
+
+Transition matrices can be derived directly from the nonlinear functions for 
 
 
 
 
 % -----------------------------------------------------
-% Dynamic Programming Implimentation
+% Dynamic Programming Implementation
 % -----------------------------------------------------
-\section{Dynamic Programming Implimentation}
+\section{Dynamic Programming Implementation}
+
+
+
+
+
+
+
+
+\subsubsection{Additional assumptions}
+A few additional assumptions must be made to restrict the problem to a markov chain implementation:
+\begin{itemize}
+    \item The monster and pc hp will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
+    \item The ensuring of a potion will be a restriction upon the pc input/result in a nothing action if no potion is available.
+\end{itemize}
+
+
+
+
+
+
+
+The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivising monster death and strongly disincentivising PC death.
+
+
 
 % Preliminaries
 \subsection{Preliminaries}
@@ -277,8 +328,8 @@ The PDF can be seen in shorthand with $P(w_{i,dn} = \smqty[1 & \cdots & n]^T) = 
 % -----------------------------------------------------
 % References
 % -----------------------------------------------------
-% \bibliography{refs}{}
-% \bibliographystyle{IEEEtran}
+\bibliography{refs}{}
+\bibliographystyle{IEEEtran}
 
 
 
