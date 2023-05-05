@@ -1,4 +1,4 @@
-function plot_DND_visualization(x, u)
+function plot_DND_visualization(x, u,const)
     %PLOT_DND_VISUALIZATION()
     %   plots a visualization of the current state of the DND system
     %   x = state w/
@@ -8,9 +8,7 @@ function plot_DND_visualization(x, u)
     %   x.mn.hp = Monster Health
     %   u = input w/
     %   u.action = chosen action
-    
-
-    maxHealth = 10;
+    maxHealth = max(const.pc.hp.max,const.mn.hp.max);
 
     hold off
     ax = gca;
@@ -34,16 +32,14 @@ function plot_DND_visualization(x, u)
 
     % Monster Image
     mn.loc = [x.mn.x + [-0.5 0.5]; x.mn.y + [1 -1]];
-%     mn.img = imread('mn_img.png');
     mn.img = imread('visualization/dargon.png');
     image(mn.loc(1,:), mn.loc(2,:), mn.img); % Plot the image
 
-
-    
     % PC Health
     pc.health = max(x.pc.hp/maxHealth,0);
     rectangle('Position', [pc.loc(1,2), pc.loc(2,2) 0.25, 2], 'FaceColor', 'k')
     rectangle('Position', [pc.loc(1,2), pc.loc(2,2) 0.25, 2*pc.health], 'FaceColor', 'g')
+
     % MN Health
     mn.health = max(x.mn.hp/maxHealth,0);
     rectangle('Position', [mn.loc(1,2), mn.loc(2,2) 0.25, 2], 'FaceColor', 'k')
@@ -57,13 +53,8 @@ function plot_DND_visualization(x, u)
         mn.img = imread("visualization/dargon_dead.png");
     end
     
-% %     hold on
     set(ax,'XLimMode','auto','XDir','normal')
     set(ax,'YLimMode','auto','YDir','normal')
 
-%     pc.ax = axes('Position', [0.7 0.7 1 1])%[pc.loc(1,2) pc.loc(2,2) 1 1])
-%     %     ;%, 'Visible','off');
-%     bar(pc.ax, x.pc.hp, 'FaceColor','g','EdgeColor','none')
-%     ylim(pc.ax, [0 maxHealth])
 
 end

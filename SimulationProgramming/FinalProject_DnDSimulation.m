@@ -1,4 +1,4 @@
-% clear; close all; %clc;
+% clear; close all; %don't clear everytime to avoid reloading results
 
 %% MECH 6326 Final Project: D&D Combat Simulation
 % Alyssa Vellucci: AMV170001
@@ -125,10 +125,6 @@ end
 
 if recalculate_pi_star
 % Initialize optimal costs, policies
-% for p = 1:length(P)
-%     P{p} = cellfun(@(P) gpuArray(P), P{p}, 'UniformOutput',false);
-% end
-% J_new = gpuArray(G_k);
 J_new = sparse(G_k);
 
 N = const.finiteHorrizon; % Future Timesteps
@@ -195,13 +191,12 @@ animation_filename = ['DND_SingleSim_Animation','_rng_seed=',...
     num2str(rng_seed)];
 animation_filename = [fileparts((mfilename('fullpath'))),'\figs\',...
     animation_filename];
-% if isfile(animation_filename); continue; end
 v = VideoWriter([animation_filename, '.mp4'], 'MPEG-4');
 v.FrameRate = 1;
 open(v);
 for k = 1:length(results.X)
     hold off
-    plot_DND_visualization(results.X(k), results.U(k))
+    plot_DND_visualization(results.X(k), results.U(k),const)
     ylim([0,10]);
     xlim([-4,4]);
     title("DND Simulation", ...
@@ -239,19 +234,11 @@ for k = 1:length(results.X)
         imwrite(imind,cm,[animation_filename, '.gif'],'gif','WriteMode','append');
     end
 end
-% save frame to the video
+% Save frame to the video
 writeVideo(v,frames{k});
 close(v);
 
-
-
-
 % Ploting all frames of animation 
-% nFrames = length(ax); figHeight = 500; figWidth = nFrames * figHeight;
-% % for square version:
-% figWidth = figHeight*sqrt(nFrames); figHeight = figWidth;
-% fig = figure('Position', [0 0 figWidth figHeight]);
-% fig = figure;
 fig = figure('Position', [0 0 1000 1000]);
 t = tiledlayout("flow");
 t.Padding = "compact";
@@ -268,7 +255,6 @@ for k = 1:length(ax)
 end
 % Save the figure as a PNG file
 saveas(gcf, [animation_filename,'.png']);
-
 end
 
 if plotHPComp
@@ -290,8 +276,6 @@ saveas(gcf, [fileparts((mfilename('fullpath'))),'\figs\',...
     'DND_SingleSim_HPcomp_rng_seed=', num2str(rng_seed),'.png'])
 
 end
-
-
 end
 
 %% Monte Carlo
@@ -338,7 +322,7 @@ if player_comparrision
         x_0 = X_0(i); x = x_0; % from MonteCarlo Sim
         u = struct('move','stop', 'action','nothing'); % For visualization
         figure
-        plot_DND_visualization(x,u)
+        plot_DND_visualization(x,u,const)
         rng(i)
         for k = 1:const.finiteHorrizon
             if x.pc.hp <= 0; break; end
@@ -349,7 +333,7 @@ if player_comparrision
             w.pc.d4 = randi(4); w.pc.d6 = randi(6); w.pc.d8 = randi(8); w.pc.d20 = randi(20);
             w.mn.d4 = randi(4); w.mn.d6 = randi(6); w.mn.d8 = randi(8); w.mn.d20 = randi(20);
             [x, pc_hit, mn_hit] = DND_sys_update(x,u,w,const);
-            plot_DND_visualization(x,u)
+            plot_DND_visualization(x,u,const)
             temp_results.X(k) = x;
             temp_results.U(k) = u;
             temp_results.W(k) = w;
