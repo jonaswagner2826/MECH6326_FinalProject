@@ -18,7 +18,7 @@
 % Format Packages/Settings
 \usepackage{todonotes}
 \usepackage{xcolor}
-\usepackage[draft]{hyperref}
+\usepackage{hyperref}
 \usepackage{cleveref}
 \renewcommand{\figureautorefname}{Fig.}
 \crefname{figure}{Fig.}{Figs.}
@@ -290,43 +290,68 @@ Ranges are set as $a_{pc,rng,m}= a_{mn,rng,m} = 2$ and $ a_{pc,rng,r} =  a_{mn,r
 Equivalent markov chains can be defined for each of the steps of a turn instead of the nonlinear mixed deterministic/stochastic functions. 
 
 The relative and deterministic nature of makes those updates much easier to be done using the update function; however, the stochastic nature of actions lend well towards a markov implementation.
+\subsubsection{Additional Assumptions}
+A few additional assumptions must be made to restrict the problem to a markov chain implementation:
+\begin{itemize}
+    \item The monster and pc hp will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
+    \item The ensuring of a potion will be a restriction upon the pc input/result in a nothing action if no potion is available.
+    \item The update of $x_{pc,hp}$ and $x_{mn,hp}$ in closed-loop will be assumed to be independent of each other.
+\end{itemize}
 
-Transition matrices can be derived directly from the nonlinear functions for $f_{pc,a}$ and $f_{mn,a}$ applied upon a 
+\subsubsection{Transition Martrices}
+Transition matrices are derived directly from each of the cases in the nonlinear functions $f_{pc,a}$ \eqref{eq:f_pc_a} and $f_{mn,a}$ \eqref{eq:f_mn_a} applied for a finite number of HP states, $x_{pc,k}, x_{mn,k} = P(x_{pc,hp}), _(x_{mn,hp}) \in [0,1]^{n_{hp,max}+1}$.
 
+The transition matrices will be defined as $[p_{i,j}] = P(x_{k+1} = i, x_{k} = j)$.
+This can be thought of as each column being the probabilistic function results for $f(x_k,w_k), x_{k} = j, w_k = P[w_k]$.
 
+The resultant markov chains (stored as the struct M in \autoref{apx:matlab}) are denoted by $P_{i,j} \forall_{i\in\{pc,mn\}} \forall_{j\in \mathcal{U}_a}$.
+\subsubsection{Closed-loop Markov Chain}
+The actual markov chains associated with closed-loop will be selected directly based on state and player input by selecting the appropriate markov chains.
+
+Since the assumption that $u_k$ will be limited to those feasible by the PC, the following described as follows:
+
+\begin{enumerate}
+    \item PC movement: $x_{k+1,pc,p} = x_{k,pc,p} + u_{pc,m}$.
+    \item PC action: \[
+        \mqty[x_{k+1,pc,hp}\\ x_{k+1,mn,hp}] = \begin{cases}
+            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,melee}] & u_k = \text{melee}\\
+            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}^T P_{pc,ranged}] & u_k = \text{ranged}\\
+            \mqty[x_{k,pc,hp}^T P_{pc,heal}\\ x_{k,mn,hp}] & u_k = \text{heal}\\
+            \mqty[x_{k,pc,hp}\\x_{k,mn,hp}] & u_k = \text{nothing}
+        \end{cases}
+    \]
+    \item Monster movement: $x_{k+1,mn,p} = x_{k,mn,p} + \operatorname{direction}(x_{k+1,pc,p} - x_{k,mn,p})$.
+    \item Monster action:\[
+        x_{k+1,pc,hp} = \begin{cases}
+            x_{k,pc,hp}^T P_{mn,melee}  & \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Melee Range}\\
+            x_{k,pc,hp}^T P_{mn,ranged} & \text{Melee Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1 \leq \text{Ranged Range}\\
+            x_{k,pc,hp} & \text{Ranged Range} < \norm{x_{k+1,pc,p} - x_{k+1,mn,p}}_1
+        \end{cases}
+    \]
+\end{enumerate}
+
+It is possible to incorporate this into a single set of markov chains in higher dimensions; however, this sequential definition seems to make the most sense instead of defining a finite number of position states and closing the loop entirely.
 
 
 % -----------------------------------------------------
 % Dynamic Programming Implementation
 % -----------------------------------------------------
 \section{Dynamic Programming Implementation}
-
-
-
-
-
-
-
-
-\subsubsection{Additional assumptions}
-A few additional assumptions must be made to restrict the problem to a markov chain implementation:
+A MDP implimentation of the dynamic programming algorithm is used to determine the optimal policy which can then be tested against the nonlinear update equation version for simulation.
+\subsection{Additional Simplifications}
+Due to the nature of the problem being of such high dimension, the following additional simplifications will be done:
 \begin{itemize}
-    \item The monster and pc hp will be restricted to a finite range, $x_{pc,hp},x_{mn,hp} \in \mathcal{X}_{hp} = \{0,1,\dots, n_{hp,max}\}$
-    \item The ensuring of a potion will be a restriction upon the pc input/result in a nothing action if no potion is available.
+    \item The policy will be only based on relative distances between the PC and Monster. (i.e.) \[
+        x_{k,pos} = x_{pc,p} - x_{mn,p} = \mqty[x_{pc,p,x} - x_{mn,p,x}\\ x_{pc,p,y} - x_{mn,p,y}]
+    \]
+    This is mainly to reduce the number of dimensions from 4 to 2 and ensure the finite position is useful.
+    \item The objective function will be only based on the $HP$ of PC and monster.
+    \item A value iteration method will be used with only a psudo-infinite-horizon as computing till convergence is not practical.
 \end{itemize}
 
+The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivizing monster death and strongly disincentivising PC death.
+Since it is only dependent on the PC and Monster HP, the stage cost static across all positions and is visualized in \cref{fig:G_k_vis}.
 
-
-
-
-
-
-The objective function is defined to minimize the monsters HP and maximize the PC HP while incentivising monster death and strongly disincentivising PC death.
-
-
-
-% Preliminaries
-\subsection{Preliminaries}
 
 
 
@@ -413,7 +438,13 @@ The program is structured to minimize negative values, effectively maximizing th
 \bibliography{refs}{}
 \bibliographystyle{IEEEtran}
 
-
-
+% -----------------------------------------------------
+% Appendices
+% -----------------------------------------------------
+\appendix
+\section{MATLAB Files}
+\label{apx:matlab}
+The code for this project can be found at 
+\url{https://github.com/jonaswagner2826/MECH6326_FinalProject/tree/master/SimulationProgramming}
 
 \end{document}
